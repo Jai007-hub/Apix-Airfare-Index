@@ -1,0 +1,201 @@
+:root {
+  --bg: #0f1420;
+  --panel: #161d2e;
+  --border: #2a3348;
+  --text: #e6e9f0;
+  --muted: #93a0b8;
+  --accent: #5b8cff;
+  --good: #3ecf8e;
+  --bad: #ff6b6b;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+.hamburger-btn {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 110;
+  width: 36px;
+  height: 36px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Sidebar sits in normal flex flow: closing it animates its width down to 0,
+   and the main panel (flex: 1) smoothly grows to fill the freed space since
+   the browser recalculates the flex layout every frame during the transition. */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  padding: 64px 16px 24px;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: width 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+}
+
+.sidebar-closed {
+  width: 0;
+  padding: 64px 0 24px;
+  opacity: 0;
+  border-right: none;
+}
+
+.sidebar h1 {
+  font-size: 18px;
+  margin: 0 0 4px;
+}
+
+.sidebar p.subtitle {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0 0 24px;
+}
+
+.sidebar nav a {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.sidebar nav a.active,
+.sidebar nav a:hover {
+  background: rgba(91, 140, 255, 0.15);
+  color: var(--accent);
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  padding: 32px 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+  transition: max-width 0.25s ease;
+}
+
+.main h2 {
+  margin-top: 0;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.card h3 {
+  margin-top: 0;
+  font-size: 14px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.controls select,
+.controls input {
+  background: #0f1420;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.stat-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.stat {
+  background: #0f1420;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  min-width: 140px;
+}
+
+.stat .label {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.stat .value {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+th {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.heatmap-table {
+  overflow-x: auto;
+}
+
+.heatmap-cell {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: #0b0f18;
+  font-size: 12px;
+}
+
+.loading,
+.error {
+  color: var(--muted);
+  padding: 12px 0;
+}
+
+.error {
+  color: var(--bad);
+}
