@@ -40,6 +40,41 @@ export interface ValidationSummary {
   points: ValidationPoint[];
 }
 
+export interface ExplainRoute {
+  route: string;
+  weight: number;
+  weight_normalised: number;
+  base_date: string;
+  base_fare: number;
+  current_fare: number;
+  price_relative: number;
+  pct_change_vs_base: number;
+  contribution_points: number;
+  n_obs: number;
+  n_outliers_excluded: number;
+  n_sold_out: number;
+  carriers: string[];
+  live_observations: number;
+  synthetic_observations: number;
+}
+
+export interface ExplainResponse {
+  period_date: string;
+  frequency: string;
+  apix_value: number;
+  base_period_date: string;
+  routes_included: number;
+  routes_total: number;
+  weight_coverage: number;
+  routes: ExplainRoute[];
+  excluded_routes: { route: string; weight: number; reason: string }[];
+  provenance: {
+    live_observations: number;
+    synthetic_observations: number;
+    pct_live: number;
+  };
+}
+
 async function getJSON<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`);
   if (!res.ok) {
@@ -57,6 +92,8 @@ export const api = {
     return getJSON<IndexPoint[]>(`/api/v1/index?${params.toString()}`);
   },
   getRoutes: () => getJSON<RouteInfo[]>("/api/v1/routes"),
+  explainIndex: (periodDate: string) =>
+    getJSON<ExplainResponse>(`/api/v1/index/explain?period_date=${periodDate}`),
   getHeatmap: (start: string, end: string, frequency: "daily" | "weekly" | "monthly" = "weekly") => {
     const params = new URLSearchParams({ start, end, frequency });
     return getJSON<HeatmapResponse>(`/api/v1/heatmap?${params.toString()}`);

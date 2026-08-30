@@ -1,0 +1,471 @@
+/* Motion, micro-detail, and the "explain this number" panel.
+   Every animation here is gated on prefers-reduced-motion at the bottom of
+   this file -- motion is decoration, never the only signal carrying meaning. */
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(57, 135, 229, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(57, 135, 229, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(57, 135, 229, 0);
+  }
+}
+
+/* Page content settles in on route change, so navigation feels deliberate. */
+.main > div {
+  animation: fade-up 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hero h1 {
+  animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hero p.lede {
+  animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.07s both;
+}
+
+.hero-figure {
+  animation: fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.14s both;
+}
+
+/* Stat tiles and nav cards cascade rather than snapping in together. */
+.stat-row .stat {
+  animation: fade-up 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.stat-row .stat:nth-child(1) {
+  animation-delay: 0.04s;
+}
+.stat-row .stat:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.stat-row .stat:nth-child(3) {
+  animation-delay: 0.16s;
+}
+.stat-row .stat:nth-child(4) {
+  animation-delay: 0.22s;
+}
+
+.nav-cards .nav-card {
+  animation: fade-up 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.nav-cards .nav-card:nth-child(1) {
+  animation-delay: 0.06s;
+}
+.nav-cards .nav-card:nth-child(2) {
+  animation-delay: 0.12s;
+}
+.nav-cards .nav-card:nth-child(3) {
+  animation-delay: 0.18s;
+}
+.nav-cards .nav-card:nth-child(4) {
+  animation-delay: 0.24s;
+}
+
+/* A quiet accent sweep across the top edge of a card on hover. */
+.card {
+  position: relative;
+  overflow: hidden;
+}
+
+.card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.card:hover::after {
+  opacity: 0.55;
+}
+
+.nav-card .ico {
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nav-card:hover .ico {
+  transform: translateY(-2px) scale(1.08);
+}
+
+.pipeline .step {
+  transition: border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.pipeline .step:hover {
+  border-color: var(--accent-line);
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+
+/* "Click a point" affordance beside the frequency toggle. */
+.hint-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+  animation: fade-in 0.5s ease 0.3s both;
+}
+
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-hi);
+  animation: pulse-ring 2.2s ease-out infinite;
+}
+
+/* ================================================== explain panel ========= */
+
+.explain-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  background: rgba(4, 5, 7, 0.55);
+  backdrop-filter: blur(3px);
+  animation: fade-in 0.2s ease;
+}
+
+.explain-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 140;
+  width: min(470px, 100vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  box-shadow: -24px 0 60px rgba(0, 0, 0, 0.55);
+  animation: slide-in-right 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  overflow: hidden;
+}
+
+.explain-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.explain-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--accent-hi);
+  margin-bottom: 4px;
+}
+
+.explain-head h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 620;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.explain-close {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink-2);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.explain-close:hover {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+
+.explain-body {
+  padding: 18px 20px 28px;
+  overflow-y: auto;
+}
+
+.explain-hero {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.explain-hero-num {
+  font-size: 44px;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  background: linear-gradient(96deg, var(--accent-hi), #8fc0fb);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.explain-hero-meta {
+  padding-bottom: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+
+.explain-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+
+.explain-facts > div {
+  background: var(--surface-2);
+  padding: 11px 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.explain-facts .k {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.explain-facts .v {
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.explain-facts .tag {
+  font-size: 12px;
+  font-weight: 550;
+  align-self: flex-start;
+  padding: 2px 9px;
+  border-radius: 999px;
+}
+
+.tag-live {
+  background: rgba(53, 196, 107, 0.14);
+  border: 1px solid rgba(53, 196, 107, 0.4);
+  color: var(--good);
+}
+
+.tag-syn {
+  background: var(--accent-wash);
+  border: 1px solid var(--accent-line);
+  color: var(--accent-hi);
+}
+
+.explain-formula {
+  margin: 0 0 16px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-2);
+  padding: 11px 13px;
+  background: var(--surface-2);
+  border-left: 2px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.explain-routes {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+}
+
+.explain-route {
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line-soft);
+  animation: fade-up 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.explain-route:last-child {
+  border-bottom: none;
+}
+
+.er-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 7px;
+}
+
+.er-name {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.er-points {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--accent-hi);
+  font-variant-numeric: tabular-nums;
+}
+
+.er-bar {
+  height: 5px;
+  background: var(--surface-3);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.er-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-hi));
+  transform-origin: left;
+  animation: grow-x 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.er-detail {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 4px;
+}
+
+.er-detail strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.er-meta {
+  font-size: 11.5px;
+  color: var(--ink-muted);
+}
+
+.er-flag {
+  color: #d9a05b;
+}
+
+.explain-excluded {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 13px 15px;
+  background: var(--surface-2);
+}
+
+.explain-excluded h4 {
+  margin: 0 0 9px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.ex-row {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  font-size: 12px;
+  padding: 4px 0;
+  color: var(--ink-2);
+}
+
+.ex-name {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.ex-reason {
+  color: var(--ink-muted);
+  text-align: right;
+}
+
+.ex-note {
+  margin: 9px 0 0;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--ink-muted);
+}
+
+@media (max-width: 640px) {
+  .explain-panel {
+    width: 100vw;
+  }
+  .explain-hero-num {
+    font-size: 36px;
+  }
+  .explain-facts {
+    grid-template-columns: 1fr;
+  }
+  .hint-inline {
+    font-size: 11.5px;
+  }
+}
+
+/* Respect the OS "reduce motion" setting -- decoration should never be
+   something a motion-sensitive viewer has to sit through. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

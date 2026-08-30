@@ -19,6 +19,7 @@ import json
 import statistics
 from datetime import date, timedelta
 
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
 
 from db.models import CityPair, CleanFare, IndexValue
@@ -43,16 +44,44 @@ def route_daily_average(session: Session, observation_date: date) -> dict[str, f
 
 def compute_base_period_averages(session: Session, start: date, end: date) -> dict[str, tuple[date, float]]:
     """For each route, the (date, avg_fare) of the earliest day in [start, end]
-    that route has CleanFare data."""
-    bases: dict[str, tuple[date, float]] = {}
-    current = start
-    while current <= end:
-        day_avgs = route_daily_average(session, current)
-        for label, avg_fare in day_avgs.items():
-            if label not in bases:
-                bases[label] = (current, avg_fare)
-        current += timedelta(days=1)
-    return bases
+    that route has CleanFare data.
+
+    Done as two aggregate queries rather than a day-by-day scan -- the
+    interactive /index/explain endpoint calls this on every click, and the
+    naive loop cost one query per day of history.
+    """
+    earliest = (
+        session.query(CleanFare.route_id, func.min(CleanFare.observation_date))
+        .filter(CleanFare.observation_date >= start, CleanFare.observation_date <= end)
+        .group_by(CleanFare.route_id)
+        .all()
+    )
+    if not earliest:
+        return {}
+
+    # Average that route's median fares across all carriers/windows on its own
+    # base day -- matching route_daily_average()'s definition exactly.
+    conditions = [
+        and_(CleanFare.route_id == route_id, CleanFare.observation_date == base_date)
+        for route_id, base_date in earliest
+    ]
+    averages = (
+        session.query(
+            CleanFare.route_id,
+            CleanFare.observation_date,
+            func.avg(CleanFare.median_total_fare),
+        )
+        .filter(or_(*conditions))
+        .group_by(CleanFare.route_id, CleanFare.observation_date)
+        .all()
+    )
+
+    route_id_to_label = {r.id: r.label for r in session.query(CityPair).all()}
+    return {
+        route_id_to_label[route_id]: (base_date, float(avg_fare))
+        for route_id, base_date, avg_fare in averages
+        if route_id in route_id_to_label
+    }
 
 
 def compute_daily_index(

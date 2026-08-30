@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { api, IndexPoint } from "../api/client";
 import { axisProps, chart, tooltipStyle } from "../chartTheme";
+import ExplainPanel from "../components/ExplainPanel";
 
 type Frequency = "daily" | "weekly" | "monthly";
 const FREQUENCIES: Frequency[] = ["daily", "weekly", "monthly"];
@@ -12,6 +13,35 @@ export default function Overview() {
   const [data, setData] = useState<IndexPoint[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [explainDate, setExplainDate] = useState<string | null>(null);
+  const chartWrapRef = useRef<HTMLDivElement>(null);
+
+  /** Maps a click/tap position onto the nearest data point.
+   *  Recharts' own onClick never fires for touch (it depends on hover state
+   *  that a tap never establishes), so we hit-test against the rendered grid
+   *  ourselves -- one code path that behaves the same for mouse and finger.
+   *  Bound to click rather than pointerup: on touch, pointerup would open the
+   *  panel and the browser's follow-up synthesised click would then land on
+   *  the freshly-rendered backdrop and immediately close it again. */
+  const explainAtPointer = (clientX: number) => {
+    if (frequency !== "daily" || data.length === 0) return;
+    const wrap = chartWrapRef.current;
+    if (!wrap) return;
+
+    // The horizontal gridlines span exactly the plotting area, so their
+    // endpoints give us the x-range the data is drawn across.
+    const gridLine = wrap.querySelector(".recharts-cartesian-grid-horizontal line");
+    if (!gridLine) return;
+    const x1 = Number(gridLine.getAttribute("x1"));
+    const x2 = Number(gridLine.getAttribute("x2"));
+    if (!Number.isFinite(x1) || !Number.isFinite(x2) || x2 <= x1) return;
+
+    const relX = clientX - wrap.getBoundingClientRect().left;
+    const ratio = (relX - x1) / (x2 - x1);
+    const index = Math.round(ratio * (data.length - 1));
+    const clamped = Math.min(data.length - 1, Math.max(0, index));
+    setExplainDate(data[clamped].period_date);
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -79,6 +109,11 @@ export default function Overview() {
               </button>
             ))}
           </div>
+          {frequency === "daily" && (
+            <span className="hint-inline">
+              <span className="pulse-dot" /> Click any point to see exactly how it was calculated
+            </span>
+          )}
         </div>
 
         {loading && <div className="loading">Loading index…</div>}
@@ -88,6 +123,11 @@ export default function Overview() {
         )}
 
         {!loading && !error && data.length > 0 && (
+          <div
+            ref={chartWrapRef}
+            onClick={(e) => explainAtPointer(e.clientX)}
+            style={{ cursor: frequency === "daily" ? "pointer" : "default", touchAction: "manipulation" }}
+          >
           <ResponsiveContainer width="100%" height={380}>
             <LineChart data={data} margin={{ top: 8, right: 18, bottom: 26, left: 8 }}>
               <CartesianGrid stroke={chart.grid} vertical={false} />
@@ -126,12 +166,17 @@ export default function Overview() {
                 stroke={chart.series1}
                 strokeWidth={2}
                 dot={false}
-                activeDot={{ r: 4, strokeWidth: 2, stroke: chart.surface }}
+                activeDot={{ r: 5, strokeWidth: 2, stroke: chart.surface, cursor: "pointer" }}
+                isAnimationActive
+                animationDuration={700}
               />
             </LineChart>
           </ResponsiveContainer>
+          </div>
         )}
       </div>
+
+      <ExplainPanel periodDate={explainDate} onClose={() => setExplainDate(null)} />
     </div>
   );
 }
