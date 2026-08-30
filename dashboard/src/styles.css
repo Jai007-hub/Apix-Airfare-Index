@@ -514,6 +514,12 @@ tbody tr:hover td {
   position: relative;
   padding: 10px 0 4px;
   margin-bottom: 28px;
+  /* Own stacking context, so the bloom below is scoped to the hero and can
+     never slip behind the page background. The earlier version leaned on
+     z-index:-1 escaping to an ancestor context, which Safari resolves
+     differently once the topbar's backdrop-filter forces compositing --
+     the bloom would disappear a moment after paint. */
+  isolation: isolate;
 }
 
 /* Soft blue bloom behind the headline -- the one decorative flourish. */
@@ -524,9 +530,16 @@ tbody tr:hover td {
   left: -180px;
   width: 620px;
   height: 380px;
-  background: radial-gradient(circle, rgba(57, 135, 229, 0.16) 0%, transparent 68%);
+  background: radial-gradient(circle, rgba(57, 135, 229, 0.2) 0%, transparent 68%);
   pointer-events: none;
-  z-index: -1;
+  z-index: 0;
+}
+
+/* Hero content sits above the bloom rather than the bloom sitting below the
+   page -- same visual result, no negative z-index anywhere. */
+.hero > * {
+  position: relative;
+  z-index: 1;
 }
 
 .hero h1 {
