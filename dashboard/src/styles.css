@@ -1,165 +1,418 @@
+/* APIx design tokens -- a cool grey/black base with a single blue accent.
+   Elevation on a dark surface comes from surface lightness and hairline
+   borders rather than shadows, which don't read against black. */
 :root {
-  --bg: #0f1420;
-  --panel: #161d2e;
-  --border: #2a3348;
-  --text: #e6e9f0;
-  --muted: #93a0b8;
-  --accent: #5b8cff;
-  --good: #3ecf8e;
-  --bad: #ff6b6b;
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --page: #0a0c10;
+  --surface: #14171c;
+  --surface-2: #1a1e25;
+  --surface-3: #21262f;
+  --line: #262c35;
+  --line-soft: #1e232b;
+
+  --ink: #eaeef4;
+  --ink-2: #a3adba;
+  --ink-muted: #6b7481;
+
+  --accent: #3987e5;
+  --accent-hi: #62a3f2;
+  --accent-wash: rgba(57, 135, 229, 0.13);
+  --accent-line: rgba(57, 135, 229, 0.4);
+  --series-2: #d95926;
+
+  --good: #35c46b;
+  --bad: #e66767;
+
+  --radius: 10px;
+  --radius-lg: 14px;
+
+  --topbar-h: 56px;
+  --sidebar-w: 236px;
+
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
 }
 
 * {
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--text);
+  background: var(--page);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  /* Safety net: the hero's decorative bloom and wide data tables must never
+     force the whole page to scroll sideways -- their own containers scroll
+     internally instead (see .heatmap-table). */
+  overflow-x: hidden;
+  width: 100%;
 }
+
+/* ---------------------------------------------------------------- shell -- */
 
 .app {
   display: flex;
   min-height: 100vh;
+  padding-top: var(--topbar-h);
+}
+
+.topbar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: var(--topbar-h);
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 20px;
+  background: rgba(10, 12, 16, 0.82);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
 }
 
 .hamburger-btn {
-  position: fixed;
-  top: 16px;
-  left: 16px;
-  z-index: 110;
-  width: 36px;
-  height: 36px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  color: var(--text);
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
   border-radius: 8px;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1;
   cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-/* Sidebar sits in normal flex flow: closing it animates its width down to 0,
-   and the main panel (flex: 1) smoothly grows to fill the freed space since
-   the browser recalculates the flex layout every frame during the transition. */
+.hamburger-btn:hover {
+  background: var(--surface-3);
+  border-color: var(--accent-line);
+  color: var(--ink);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 11px;
+  min-width: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.brand .mark {
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.brand .mark span {
+  color: var(--accent-hi);
+}
+
+.brand .tagline {
+  font-size: 13px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar-spacer {
+  flex: 1;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  border: 1px solid var(--accent-line);
+  background: var(--accent-wash);
+  color: var(--accent-hi);
+}
+
+.badge .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-hi);
+  box-shadow: 0 0 0 3px rgba(57, 135, 229, 0.18);
+}
+
+/* Sidebar stays in flex flow so collapsing it hands the width back to the
+   main panel, which grows to fill in the same animation frame. */
 .sidebar {
-  width: 220px;
+  width: var(--sidebar-w);
   flex-shrink: 0;
-  background: var(--panel);
-  border-right: 1px solid var(--border);
-  padding: 64px 16px 24px;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  padding: 22px 14px;
   overflow: hidden;
   white-space: nowrap;
-  transition: width 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+  transition: width 0.24s ease, padding 0.24s ease, opacity 0.18s ease;
 }
 
 .sidebar-closed {
   width: 0;
-  padding: 64px 0 24px;
+  padding: 22px 0;
   opacity: 0;
   border-right: none;
 }
 
-.sidebar h1 {
-  font-size: 18px;
-  margin: 0 0 4px;
+.sidebar-backdrop {
+  display: none;
 }
 
-.sidebar p.subtitle {
-  color: var(--muted);
-  font-size: 12px;
-  margin: 0 0 24px;
+.sidebar .nav-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  padding: 0 10px;
+  margin-bottom: 10px;
 }
 
 .sidebar nav a {
-  display: block;
-  padding: 10px 12px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 11px;
   border-radius: 8px;
-  color: var(--text);
+  color: var(--ink-2);
   text-decoration: none;
   font-size: 14px;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
-.sidebar nav a.active,
 .sidebar nav a:hover {
-  background: rgba(91, 140, 255, 0.15);
-  color: var(--accent);
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.sidebar nav a.active {
+  background: var(--accent-wash);
+  color: var(--accent-hi);
+  font-weight: 550;
+}
+
+.sidebar nav a.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 2.5px;
+  border-radius: 2px;
+  background: var(--accent-hi);
+}
+
+.sidebar nav a .ico {
+  width: 16px;
+  text-align: center;
+  opacity: 0.8;
+  font-size: 13px;
+}
+
+.sidebar .sidebar-foot {
+  margin-top: 22px;
+  padding: 13px 10px 0;
+  border-top: 1px solid var(--line-soft);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--ink-muted);
+  white-space: normal;
 }
 
 .main {
   flex: 1;
   min-width: 0;
-  padding: 32px 40px;
-  max-width: 1200px;
+  padding: 30px 36px 56px;
+  max-width: 1180px;
   margin: 0 auto;
-  transition: max-width 0.25s ease;
 }
 
-.main h2 {
-  margin-top: 0;
+/* --------------------------------------------------------- page headers -- */
+
+.page-head {
+  margin-bottom: 22px;
 }
+
+.page-head h2 {
+  margin: 0 0 6px;
+  font-size: 25px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.page-head p {
+  margin: 0;
+  max-width: 68ch;
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+/* ----------------------------------------------------------------- card -- */
 
 .card {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 24px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
+  margin-bottom: 20px;
 }
 
-.card h3 {
-  margin-top: 0;
+.card > h3 {
+  margin: 0 0 16px;
   font-size: 14px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.01em;
 }
+
+.card > h3 .sub {
+  font-weight: 400;
+  color: var(--ink-muted);
+  margin-left: 8px;
+}
+
+/* -------------------------------------------------------------- controls -- */
 
 .controls {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
   flex-wrap: wrap;
+}
+
+.controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  color: var(--ink-2);
 }
 
 .controls select,
 .controls input {
-  background: #0f1420;
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 6px 10px;
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
   font-size: 13px;
+  font-family: inherit;
+  color-scheme: dark;
 }
 
+.controls select:hover,
+.controls input:hover {
+  border-color: var(--accent-line);
+}
+
+.controls select:focus-visible,
+.controls input:focus-visible,
+.seg button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Segmented toggle (frequency switches). */
+.seg {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+
+.seg button {
+  border: none;
+  background: transparent;
+  color: var(--ink-2);
+  border-radius: 6px;
+  padding: 6px 15px;
+  font-size: 13px;
+  font-family: inherit;
+  text-transform: capitalize;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.seg button:hover {
+  color: var(--ink);
+}
+
+.seg button[aria-pressed="true"] {
+  background: var(--accent-wash);
+  color: var(--accent-hi);
+  font-weight: 550;
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+
+/* ----------------------------------------------------------- stat tiles -- */
+
 .stat-row {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
 }
 
 .stat {
-  background: #0f1420;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 14px 18px;
-  min-width: 140px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 15px 17px;
+  transition: border-color 0.15s ease;
+}
+
+.stat:hover {
+  border-color: var(--surface-3);
 }
 
 .stat .label {
-  color: var(--muted);
+  color: var(--ink-muted);
   font-size: 12px;
-  margin-bottom: 4px;
+  font-weight: 500;
+  margin-bottom: 7px;
 }
 
 .stat .value {
-  font-size: 22px;
+  font-size: 26px;
   font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
 }
+
+.stat .hint {
+  margin-top: 5px;
+  font-size: 11.5px;
+  color: var(--ink-muted);
+}
+
+.up {
+  color: var(--bad);
+}
+
+.down {
+  color: var(--good);
+}
+
+/* ---------------------------------------------------------------- table -- */
 
 table {
   width: 100%;
@@ -170,32 +423,458 @@ table {
 th,
 td {
   text-align: left;
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--border);
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line-soft);
 }
 
 th {
-  color: var(--muted);
-  font-weight: 500;
+  color: var(--ink-muted);
+  font-weight: 550;
+  font-size: 12px;
+  white-space: nowrap;
 }
+
+td {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+tbody tr:hover td {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+/* -------------------------------------------------------------- heatmap -- */
 
 .heatmap-table {
   overflow-x: auto;
 }
 
+.heatmap-table table {
+  border-collapse: separate;
+  border-spacing: 2px; /* surface gap keeps adjacent cells reading as separate marks */
+}
+
+.heatmap-table th,
+.heatmap-table td {
+  border-bottom: none;
+}
+
+.heatmap-table tbody tr:hover td {
+  background: none;
+}
+
+.heatmap-table td:first-child,
+.heatmap-table th:first-child {
+  position: sticky;
+  left: 0;
+  background: var(--surface);
+  font-weight: 550;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
 .heatmap-cell {
   text-align: center;
   font-variant-numeric: tabular-nums;
-  color: #0b0f18;
   font-size: 12px;
+  border-radius: 5px;
+  min-width: 74px;
 }
+
+.legend-scale {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  row-gap: 6px;
+  column-gap: 9px;
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.legend-scale .swatches {
+  display: flex;
+  gap: 2px;
+}
+
+.legend-scale .swatches i {
+  width: 22px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+/* ------------------------------------------------------------ home page -- */
+
+.hero {
+  position: relative;
+  padding: 10px 0 4px;
+  margin-bottom: 28px;
+}
+
+/* Soft blue bloom behind the headline -- the one decorative flourish. */
+.hero::before {
+  content: "";
+  position: absolute;
+  top: -120px;
+  left: -180px;
+  width: 620px;
+  height: 380px;
+  background: radial-gradient(circle, rgba(57, 135, 229, 0.16) 0%, transparent 68%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.hero h1 {
+  margin: 0 0 14px;
+  font-size: 39px;
+  line-height: 1.14;
+  font-weight: 680;
+  letter-spacing: -0.032em;
+  max-width: 20ch;
+}
+
+.hero h1 em {
+  font-style: normal;
+  background: linear-gradient(96deg, var(--accent-hi), #8fc0fb);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero p.lede {
+  margin: 0;
+  max-width: 66ch;
+  font-size: 15.5px;
+  line-height: 1.62;
+  color: var(--ink-2);
+}
+
+.hero-figure {
+  display: flex;
+  align-items: flex-end;
+  gap: 17px;
+  flex-wrap: wrap;
+  margin: 28px 0 8px;
+}
+
+.hero-figure .num {
+  font-size: 62px;
+  font-weight: 650;
+  letter-spacing: -0.038em;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.hero-figure .meta {
+  padding-bottom: 8px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+
+.nav-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(232px, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.nav-card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  transition: border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
+}
+
+.nav-card:hover {
+  border-color: var(--accent-line);
+  background: var(--surface-2);
+  transform: translateY(-2px);
+}
+
+.nav-card .ico {
+  font-size: 19px;
+  margin-bottom: 11px;
+  display: block;
+  color: var(--accent-hi);
+}
+
+.nav-card h4 {
+  margin: 0 0 5px;
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.nav-card p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.note {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 2.5px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 15px 17px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+.note strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.note code {
+  background: var(--surface-3);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 12px;
+  color: var(--accent-hi);
+}
+
+.pipeline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+}
+
+.pipeline .step {
+  padding: 7px 13px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  border-radius: 999px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.pipeline .arrow {
+  color: var(--accent);
+}
+
+/* --------------------------------------------------------------- states -- */
 
 .loading,
-.error {
-  color: var(--muted);
-  padding: 12px 0;
+.error,
+.empty {
+  color: var(--ink-muted);
+  padding: 26px 0;
+  font-size: 13.5px;
+  text-align: center;
 }
 
 .error {
-  color: var(--bad);
+  color: #f4a3a3;
+  text-align: left;
+  background: rgba(230, 103, 103, 0.08);
+  border: 1px solid rgba(230, 103, 103, 0.28);
+  border-radius: var(--radius);
+  padding: 13px 15px;
+}
+
+/* Scrollbars, so they don't render as bright light-mode bars. */
+* {
+  scrollbar-color: var(--surface-3) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 6px;
+  border: 3px solid var(--page);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2c333d;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------------------------------------------------- responsive: tablet -- */
+/* Below this, there isn't room to permanently reserve --sidebar-w, so the
+   sidebar switches from push-layout to a fixed overlay drawer (App.tsx
+   defaults it closed and adds a backdrop at this same breakpoint). */
+@media (max-width: 860px) {
+  .sidebar {
+    position: fixed;
+    top: var(--topbar-h);
+    left: 0;
+    bottom: 0;
+    z-index: 115;
+    width: min(var(--sidebar-w), 78vw);
+    max-width: 78vw;
+    padding: 18px 14px;
+    box-shadow: 12px 0 32px rgba(0, 0, 0, 0.45);
+    transform: translateX(0);
+    transition: transform 0.22s ease;
+  }
+
+  .sidebar-closed {
+    width: min(var(--sidebar-w), 78vw);
+    max-width: 78vw;
+    padding: 18px 14px;
+    opacity: 1;
+    transform: translateX(-100%);
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: var(--topbar-h) 0 0 0;
+    background: rgba(4, 5, 7, 0.6);
+    backdrop-filter: blur(2px);
+    z-index: 110;
+    animation: backdrop-in 0.18s ease;
+  }
+
+  @keyframes backdrop-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .main {
+    max-width: 100%;
+  }
+}
+
+/* ----------------------------------------------------- responsive: phone -- */
+@media (max-width: 640px) {
+  .topbar {
+    padding: 0 14px;
+    gap: 10px;
+  }
+
+  .brand .tagline {
+    display: none;
+  }
+
+  .badge .badge-label {
+    display: none;
+  }
+
+  .badge {
+    padding: 7px;
+  }
+
+  .main {
+    padding: 20px 16px 40px;
+  }
+
+  .page-head h2 {
+    font-size: 21px;
+  }
+
+  .hero::before {
+    width: 380px;
+    height: 260px;
+    left: -140px;
+    top: -80px;
+  }
+
+  .hero h1 {
+    font-size: 27px;
+    max-width: none;
+  }
+
+  .hero p.lede {
+    font-size: 14px;
+  }
+
+  .hero-figure {
+    gap: 12px;
+    margin: 22px 0 6px;
+  }
+
+  .hero-figure .num {
+    font-size: 42px;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .stat-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .stat {
+    padding: 12px 13px;
+  }
+
+  .stat .value {
+    font-size: 21px;
+  }
+
+  .nav-cards {
+    grid-template-columns: 1fr;
+  }
+
+  th,
+  td {
+    padding: 8px 9px;
+    font-size: 12.5px;
+  }
+
+  .heatmap-cell {
+    min-width: 60px;
+    font-size: 11px;
+  }
+
+  /* Segmented toggles and date inputs get a taller tap target on touch. */
+  .seg button {
+    padding: 9px 13px;
+  }
+
+  .controls {
+    gap: 10px;
+  }
+
+  .controls select,
+  .controls input {
+    padding: 9px 10px;
+  }
+}
+
+@media (max-width: 400px) {
+  .stat-row {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-figure .num {
+    font-size: 36px;
+  }
+
+  .hamburger-btn,
+  .brand .mark {
+    font-size: 14px;
+  }
 }

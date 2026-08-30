@@ -3,6 +3,11 @@
 # Terminal automatically, unlike .sh files (which just open in a text editor).
 # First-time setup only: python3 -m venv .venv && source .venv/bin/activate &&
 # pip install -r requirements.txt && (cd dashboard && npm install)
+#
+# First double-click may be blocked by Gatekeeper ("cannot be opened because
+# it is from an unidentified developer") -- right-click the file and choose
+# Open instead of double-clicking; that gives an explicit Open button that
+# only needs to be used once.
 cd "$(dirname "$0")"
 
 if [ ! -f ".venv/bin/uvicorn" ]; then

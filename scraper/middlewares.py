@@ -11,6 +11,7 @@ source's ToS. See docs/ETHICAL_SCRAPING.md.
 import itertools
 import logging
 
+# pyrefly: ignore [missing-import]
 from scrapy.exceptions import IgnoreRequest
 
 logger = logging.getLogger("apix_scraper.middlewares")

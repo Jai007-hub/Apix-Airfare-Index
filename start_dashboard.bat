@@ -17,3 +17,4 @@ echo.
 echo Two windows just opened - one for the API, one for the dashboard.
 echo Leave both running. This window can be closed.
 pause
+s

@@ -8,36 +8,111 @@ it against the official MoSPI CPI airfare sub-index, and serves it via an API
 `docs/VALIDATION.md` for why this defaults to a calibrated synthetic dataset
 rather than depending on live scraping succeeding.
 
-## Quickstart (backend + API, Python only)
-
-A `.venv/` (Python 3.13) already exists in this project with every
-dependency installed -- it exists specifically so the project always runs
-against the right Python, regardless of what else is installed system-wide
-or which `python` a plain terminal happens to resolve to.
+## 1. Clone the repo
 
 ```bash
-.venv\Scripts\activate      # Windows
-
-# Backfill demo data (Feb-Jul 2026 synthetic history), clean, build the index,
-# and backtest against cpi_1054.xlsx -- takes about a minute.
-python -m scripts.seed_demo_data
-
-# Serve the API
-uvicorn api.main:app --reload
-# -> http://127.0.0.1:8000/docs
+git clone <this-repo-url>
+cd Apix-Airfare-Index
 ```
 
-(On a fresh machine without `.venv/` yet: `python -m venv .venv`, activate
-it as above, then `pip install -r requirements.txt`.)
+You'll need **Python 3.11+** and **Node.js (LTS)** installed. Check with
+`python --version` / `python3 --version` and `node --version` -- install from
+[python.org](https://python.org) and [nodejs.org](https://nodejs.org) if either
+is missing, then **open a brand-new terminal** afterward (an already-open one
+won't see a just-installed program).
 
-## Dashboard (needs Node.js -- not installed in this environment; install it, then:)
+## 2. One-time setup
 
-```bash
+The project keeps its own virtual environment (`.venv/`) rather than relying
+on whatever `python` a terminal happens to resolve to system-wide -- this
+matters if the machine has more than one Python version installed.
+
+**Windows (PowerShell or the VS Code terminal):**
+```powershell
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
 cd dashboard
 npm install
-npm run dev
-# -> http://localhost:5173  (proxies /api to http://127.0.0.1:8000 by default)
+cd ..
 ```
+
+**macOS (Terminal):**
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cd dashboard
+npm install
+cd ..
+```
+
+Then, on either OS, generate the demo dataset (~1 minute -- synthetic fare
+history, cleaned, indexed, and back-tested against `cpi_1054.xlsx`):
+```bash
+python -m scripts.seed_demo_data
+```
+
+## 3. Run it
+
+**Option A -- one command:**
+- Windows: double-click `start_dashboard.bat` (or run `.\start_dashboard.bat`)
+- macOS: `bash start_dashboard.command` (double-clicking it in Finder also
+  works once you've run it via Terminal the first time -- see the note in
+  that file if Gatekeeper blocks it)
+
+Both start the API and the dashboard together and open
+`http://localhost:5173` in your browser automatically.
+
+**Option B -- two terminals, manually:**
+```bash
+# Terminal 1 -- API
+.venv\Scripts\activate          # Windows
+source .venv/bin/activate       # macOS
+uvicorn api.main:app --reload
+# -> http://127.0.0.1:8000/docs
+
+# Terminal 2 -- dashboard
+cd dashboard
+npm run dev
+# -> http://localhost:5173
+```
+
+### Opening it from your phone
+
+Both servers bind to all network interfaces, so on the same Wi-Fi you can
+open `http://<this-computer's-LAN-IP>:5173` from a phone. Find the IP with
+`ipconfig` (Windows, look for the Wi-Fi adapter's IPv4 address) or
+`ifconfig | grep inet` (macOS). If it doesn't connect, check that Windows
+Firewall allows `python.exe`/`node.exe` through and that the network isn't
+set to "Public" (Settings -> Network & Internet -> Wi-Fi -> network profile).
+
+## Keeping multiple machines in sync
+
+This repo is the source of truth -- changes don't sync automatically between
+machines, you move them explicitly with git:
+
+- **Push changes up** (from whichever machine made them):
+  ```bash
+  git add -A
+  git commit -m "describe what changed"
+  git push
+  ```
+- **Pull changes down** (on any other machine, before you start working):
+  ```bash
+  git pull
+  ```
+
+If you've been given **read-only (Collaborator: Read) access** to this
+private repo, `git pull` always works, but `git push` will be rejected by
+GitHub -- that's intentional, not a bug, so you can safely `git pull` any
+time without risk of overwriting anyone's work.
+
+Note that `apix.db` (the seeded demo database) is intentionally **not**
+tracked by git -- it's regenerated locally by `scripts.seed_demo_data`, so
+each machine's demo data is independent. Run
+`python -m scripts.extend_demo_data` on a given machine any time its data
+looks stale relative to today's date.
 
 ## Live scraping (optional, in addition to the synthetic default)
 
@@ -73,7 +148,7 @@ index/      APIx construction, basket weights, elasticity, heatmap
 validation/ backtest against cpi_1054.xlsx (the real CPI airfare sub-index)
 api/        FastAPI app
 dashboard/  React + Vite + Recharts UI
-scripts/    one-shot demo seed
+scripts/    demo data seed + top-up
 tests/      pytest suite
 docs/       architecture, ethical-scraping policy, data dictionary, API, validation
 ```

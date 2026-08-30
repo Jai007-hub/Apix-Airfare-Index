@@ -1,21 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { api, HeatmapResponse } from "../api/client";
+import { chart, sequentialColor, sequentialTextColor } from "../chartTheme";
+
+type Frequency = "daily" | "weekly" | "monthly";
+const FREQUENCIES: Frequency[] = ["daily", "weekly", "monthly"];
 
 function isoDaysAgo(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() - days);
   return d.toISOString().slice(0, 10);
 }
-
-function colorFor(value: number, min: number, max: number): string {
-  const t = max > min ? (value - min) / (max - min) : 0.5;
-  // cool blue (cheap) -> warm red (expensive)
-  const hue = 210 - t * 210; // 210 = blue, 0 = red
-  return `hsl(${hue}, 70%, 55%)`;
-}
-
-type Frequency = "daily" | "weekly" | "monthly";
 
 export default function SectorHeatmap() {
   const [frequency, setFrequency] = useState<Frequency>("weekly");
@@ -25,6 +20,7 @@ export default function SectorHeatmap() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    setError(null);
     api
       .getHeatmap(start, end, frequency)
       .then(setData)
@@ -34,83 +30,102 @@ export default function SectorHeatmap() {
   const { min, max } = useMemo(() => {
     if (!data) return { min: 0, max: 1 };
     const values = Object.values(data.matrix).flatMap((row) => Object.values(row));
+    if (!values.length) return { min: 0, max: 1 };
     return { min: Math.min(...values), max: Math.max(...values) };
   }, [data]);
 
   return (
     <div>
-      <h2>Sector-wise Heatmap</h2>
-      <p style={{ color: "var(--muted)", marginTop: -8 }}>
-        Rows (Y) = route, columns (X) = time period. Each cell = average total fare (INR) for that route in that
-        period; color scales from cheapest (blue) to most expensive (red).
-      </p>
+      <div className="page-head">
+        <h2>Sector-wise Heatmap</h2>
+        <p>
+          Average all-inclusive fare (₹) for each route, by period. Rows are city-pairs, columns are
+          time periods; brighter cells are more expensive sectors.
+        </p>
+      </div>
 
       <div className="card">
+        <h3>
+          Average total fare<span className="sub">₹, includes taxes, UDF &amp; fees</span>
+        </h3>
+
         <div className="controls">
+          <div className="seg" role="group" aria-label="Heatmap frequency">
+            {FREQUENCIES.map((f) => (
+              <button key={f} onClick={() => setFrequency(f)} aria-pressed={frequency === f}>
+                {f}
+              </button>
+            ))}
+          </div>
           <label>
-            Start{" "}
+            From
             <input type="date" value={start} onChange={(e) => setStart(e.target.value)} />
           </label>
           <label>
-            End{" "}
+            To
             <input type="date" value={end} onChange={(e) => setEnd(e.target.value)} />
           </label>
-          {(["daily", "weekly", "monthly"] as Frequency[]).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFrequency(f)}
-              style={{
-                background: frequency === f ? "var(--accent)" : "transparent",
-                color: frequency === f ? "#0b0f18" : "var(--text)",
-                border: "1px solid var(--border)",
-                borderRadius: 6,
-                padding: "6px 14px",
-                cursor: "pointer",
-                fontSize: 13,
-              }}
-            >
-              {f}
-            </button>
-          ))}
         </div>
 
         {error && <div className="error">{error}</div>}
-        {!data && !error && <div className="loading">Loading...</div>}
+        {!data && !error && <div className="loading">Loading heatmap…</div>}
+        {data && data.routes.length === 0 && (
+          <div className="empty">No fare data in this date range.</div>
+        )}
 
         {data && data.routes.length > 0 && (
-          <div className="heatmap-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Route</th>
-                  {data.periods.map((p) => (
-                    <th key={p}>{p}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {data.routes.map((route) => (
-                  <tr key={route}>
-                    <td>{route}</td>
-                    {data.periods.map((p) => {
-                      const value = data.matrix[route]?.[p];
-                      return (
-                        <td
-                          key={p}
-                          className="heatmap-cell"
-                          style={{ background: value != null ? colorFor(value, min, max) : "transparent" }}
-                        >
-                          {value != null ? Math.round(value).toLocaleString() : ""}
-                        </td>
-                      );
-                    })}
+          <>
+            <div className="heatmap-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Route</th>
+                    {data.periods.map((p) => (
+                      <th key={p}>{p}</th>
+                    ))}
                   </tr>
+                </thead>
+                <tbody>
+                  {data.routes.map((route) => (
+                    <tr key={route}>
+                      <td>{route}</td>
+                      {data.periods.map((p) => {
+                        const value = data.matrix[route]?.[p];
+                        if (value == null) {
+                          return <td key={p} className="heatmap-cell" />;
+                        }
+                        return (
+                          <td
+                            key={p}
+                            className="heatmap-cell"
+                            style={{
+                              background: sequentialColor(value, min, max),
+                              color: sequentialTextColor(value, min, max),
+                            }}
+                            title={`${route} · ${p} · ₹${Math.round(value).toLocaleString("en-IN")}`}
+                          >
+                            {Math.round(value).toLocaleString("en-IN")}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="legend-scale">
+              <span>₹{Math.round(min).toLocaleString("en-IN")}</span>
+              <span className="swatches">
+                {chart.sequential.map((c) => (
+                  <i key={c} style={{ background: c }} />
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </span>
+              <span>₹{Math.round(max).toLocaleString("en-IN")}</span>
+              <span style={{ marginLeft: 4 }}>cheapest → most expensive</span>
+            </div>
+          </>
         )}
-        {data && data.routes.length === 0 && <div className="loading">No data in this range.</div>}
       </div>
     </div>
   );
