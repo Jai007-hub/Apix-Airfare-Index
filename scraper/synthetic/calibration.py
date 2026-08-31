@@ -6,6 +6,7 @@ sharply as departure approaches, spike further on weekends/festive season,
 and differ by carrier type and booking channel. Replace with fitted
 parameters once enough live-scraped history exists.
 """
+import zlib
 from datetime import date
 
 # Reference one-way economy fare (INR) per route at a relaxed T+45 booking window.
@@ -76,10 +77,16 @@ def season_multiplier(departure_date: date) -> float:
 
 def demand_shock(observation_date: date, route_label: str, rng) -> float:
     """A small route/day-specific random walk component so consecutive days
-    aren't perfectly smooth (mirrors real yield-management noise)."""
-    seed_val = hash((observation_date.isoformat(), route_label)) % (2**31)
+    aren't perfectly smooth (mirrors real yield-management noise).
+
+    Seeded with crc32 rather than the builtin hash(): Python salts string
+    hashing per process, so hash() would hand this function a different value
+    on every run and the "seeded, reproducible" generator would silently
+    produce a different dataset each time it was seeded.
+    """
+    key = f"{observation_date.isoformat()}|{route_label}".encode()
     local_rng_state = rng.getstate()
-    rng.seed(seed_val)
+    rng.seed(zlib.crc32(key))
     shock = rng.uniform(0.94, 1.08)
     rng.setstate(local_rng_state)
     return shock

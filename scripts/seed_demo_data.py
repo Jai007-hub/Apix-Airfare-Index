@@ -1,11 +1,9 @@
-"""One-shot demo seed: generates >=30 days of calibrated synthetic fare
-history, runs it through cleaning + index construction, then validates the
-computed monthly APIx against the real MoSPI CPI airfare sub-index
-(cpi_1054.xlsx). This is what gives the API/dashboard something to show
-without depending on live scraping succeeding first (requirement #10's
-backtest, satisfied by construction: default range starts 2026-02-01 and
-runs through today, so there's always overlap with the CPI file's months
-and the dashboard is never stale).
+"""One-shot demo seed: generates calibrated synthetic fare history, runs it
+through cleaning + index construction, then validates the computed monthly
+APIx against the real MoSPI CPI airfare sub-index (cpi_1054.xlsx). This is
+what gives the API/dashboard something to show without depending on live
+scraping succeeding first, and satisfies requirement #10's back-test by
+construction.
 
     python -m scripts.seed_demo_data
     python -m scripts.seed_demo_data --start 2026-06-01 --end 2026-07-31
@@ -30,13 +28,23 @@ from validation.backtest import run_backtest
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CPI_XLSX = PROJECT_ROOT / "cpi_1054.xlsx"
 
+# The synthetic history spans exactly the period cpi_1054.xlsx covers:
+# January 2025 through July 2026. Both ends are fixed rather than running to
+# "today" for two reasons -- every month of generated fares then has a real
+# CPI month to be validated against, and the seed is reproducible, so a
+# teammate seeding next week gets a byte-identical database rather than a
+# quietly different date range. Anything past July 2026 could not be
+# back-tested, so it isn't generated.
+# These are the single source of truth; scripts/extend_demo_data.py imports
+# them rather than keeping its own copy.
+DEMO_START = date(2025, 1, 1)
+DEMO_END = date(2026, 7, 31)
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Seed the APIx demo database end-to-end")
-    # Starts where cpi_1054.xlsx's own coverage starts, so the back-test has
-    # every available CPI month to compare against rather than a slice.
-    parser.add_argument("--start", type=str, default="2025-01-01")
-    parser.add_argument("--end", type=str, default=date.today().isoformat())
+    parser.add_argument("--start", type=str, default=DEMO_START.isoformat())
+    parser.add_argument("--end", type=str, default=DEMO_END.isoformat())
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--cpi-xlsx", type=str, default=str(DEFAULT_CPI_XLSX))
     args = parser.parse_args()

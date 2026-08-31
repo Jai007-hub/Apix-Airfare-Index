@@ -1,5 +1,7 @@
 from datetime import date
 
+import pytest
+
 from scraper import config
 from scraper.synthetic.generator import SyntheticFareGenerator
 
@@ -53,3 +55,42 @@ def test_deterministic_given_same_seed():
     a = gen_a.generate_for_day(date(2026, 7, 1))
     b = gen_b.generate_for_day(date(2026, 7, 1))
     assert [r.total_fare for r in a] == [r.total_fare for r in b]
+
+
+def test_demand_shock_is_stable_across_processes():
+    """Regression guard: demand_shock was seeded with the builtin hash(), which
+    Python salts per process -- so a "seeded" generator silently produced a
+    different dataset on every run. These are golden values; if the shock
+    seeding goes back to anything process-dependent, they stop matching.
+
+    (The test above cannot catch it: both generators run inside one process
+    and therefore share the same hash salt.)
+    """
+    import random
+
+    from scraper.synthetic import calibration
+
+    cases = {
+        ("2025-01-01", "DEL-BOM"): 1.0636734205323273,
+        ("2026-07-31", "MAA-BLR"): 1.0391736237224438,
+    }
+    for (iso, route), expected in cases.items():
+        got = calibration.demand_shock(date.fromisoformat(iso), route, random.Random(0))
+        assert got == pytest.approx(expected, abs=1e-12), (
+            f"demand_shock({iso}, {route}) = {got!r}; if this changed deliberately, "
+            "update the golden values -- if not, the seeding is process-dependent again."
+        )
+
+
+def test_demand_shock_does_not_disturb_the_caller_rng():
+    """It reseeds the shared RNG internally, so it must restore the caller's
+    stream -- otherwise every draw after it would shift."""
+    import random
+
+    from scraper.synthetic import calibration
+
+    rng = random.Random(7)
+    rng.random()  # advance the stream
+    state_before = rng.getstate()
+    calibration.demand_shock(date(2025, 5, 5), "DEL-BLR", rng)
+    assert rng.getstate() == state_before

@@ -47,11 +47,16 @@ npm install
 cd ..
 ```
 
-Then, on either OS, generate the demo dataset (~1 minute -- synthetic fare
-history, cleaned, indexed, and back-tested against `cpi_1054.xlsx`):
+Then, on either OS, generate the demo dataset -- synthetic fare history,
+cleaned, indexed, and back-tested against `cpi_1054.xlsx`:
 ```bash
 python -m scripts.seed_demo_data
 ```
+This covers **1 Jan 2025 - 31 Jul 2026**, exactly the period the CPI file
+spans, so every generated month has a real CPI month to be validated
+against. Both ends are fixed rather than running to "today", so everyone who
+seeds gets an identical database. It generates ~1.06M fare records and takes
+roughly **4 minutes** -- it looks stalled partway through; let it finish.
 
 ## 3. Run it
 
@@ -109,10 +114,11 @@ GitHub -- that's intentional, not a bug, so you can safely `git pull` any
 time without risk of overwriting anyone's work.
 
 Note that `apix.db` (the seeded demo database) is intentionally **not**
-tracked by git -- it's regenerated locally by `scripts.seed_demo_data`, so
-each machine's demo data is independent. Run
-`python -m scripts.extend_demo_data` on a given machine any time its data
-looks stale relative to today's date.
+tracked by git -- it's ~250MB of generated data, regenerated locally by
+`scripts.seed_demo_data`. **`git pull` therefore updates code but not
+data.** If a pull changes the seed range or the index maths, delete
+`apix.db` and re-seed on that machine, otherwise the dashboard keeps showing
+figures built from the old data.
 
 ## Live scraping (optional, in addition to the synthetic default)
 

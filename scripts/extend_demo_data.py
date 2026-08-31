@@ -1,12 +1,16 @@
 """Tops up an already-seeded database with only the missing trailing days,
-so the dashboard never goes stale as "today" advances, without touching or
-duplicating the existing history. (Re-running scripts/seed_demo_data.py over
-a range that overlaps what's already loaded would crash on duplicate raw
-observations instead -- flight numbers are deterministic given the same
-seed + date, so it collides with the existing unique constraint.)
+without touching or duplicating the existing history. (Re-running
+scripts/seed_demo_data.py over a range that overlaps what's already loaded
+would crash on duplicate raw observations instead -- flight numbers are
+deterministic given the same seed + date, so it collides with the existing
+unique constraint.)
 
-    python -m scripts.extend_demo_data                  # fills through today
-    python -m scripts.extend_demo_data --end 2026-09-01  # fills through a specific date
+Defaults to filling up to the end of the CPI-covered period (July 2026), the
+same bound seed_demo_data.py uses. Pass a later --end deliberately if you
+want fares beyond what cpi_1054.xlsx can validate against.
+
+    python -m scripts.extend_demo_data                  # fills to 2026-07-31
+    python -m scripts.extend_demo_data --end 2026-09-01  # fills past CPI coverage
 """
 import argparse
 from datetime import date, timedelta
@@ -19,16 +23,16 @@ from pipeline.clean import clean_date_range
 from pipeline.dimensions import ensure_dimensions
 from pipeline.load import bulk_load_records
 from scraper.synthetic.generator import SyntheticFareGenerator
+from scripts.seed_demo_data import DEMO_END, DEMO_START
 from validation.backtest import run_backtest
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CPI_XLSX = PROJECT_ROOT / "cpi_1054.xlsx"
-SEED_BASE_START = date(2026, 2, 1)  # must match scripts/seed_demo_data.py's default start
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Top up the demo database with missing trailing days")
-    parser.add_argument("--end", type=str, default=date.today().isoformat())
+    parser.add_argument("--end", type=str, default=DEMO_END.isoformat())
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--cpi-xlsx", type=str, default=str(DEFAULT_CPI_XLSX))
     args = parser.parse_args()
@@ -67,7 +71,7 @@ def main() -> None:
     # continuous and correctly based -- idempotent for already-existing days
     # (same inputs -> same outputs, just re-upserted).
     with session_scope() as session:
-        counts = build_and_persist_all(session, SEED_BASE_START, end)
+        counts = build_and_persist_all(session, DEMO_START, end)
     print(f"Index rows written/updated: {counts}")
 
     with session_scope() as session:
