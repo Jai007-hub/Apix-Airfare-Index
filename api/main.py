@@ -7,7 +7,15 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routers import elasticity_router, fares_router, heatmap_router, index_router, routes_router, validation_router
+from api.routers import (
+    elasticity_router,
+    fares_router,
+    heatmap_router,
+    index_router,
+    routes_router,
+    traveller_router,
+    validation_router,
+)
 from db.database import init_db
 
 
@@ -44,3 +52,4 @@ app.include_router(fares_router.router)
 app.include_router(heatmap_router.router)
 app.include_router(elasticity_router.router)
 app.include_router(validation_router.router)
+app.include_router(traveller_router.router)

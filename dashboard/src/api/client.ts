@@ -78,6 +78,34 @@ export interface ExplainResponse {
   };
 }
 
+export interface FareWindow {
+  window_days: number;
+  fare: number;
+}
+
+export interface CarrierFare {
+  code: string;
+  name: string;
+  fare: number;
+}
+
+/** Consumer-facing summary of one route -- powers the phone view. */
+export interface TravellerSummary {
+  route: string;
+  origin: string;
+  destination: string;
+  as_of: string;
+  typical_fare: number;
+  cheapest_window: FareWindow;
+  dearest_window: FareWindow;
+  max_saving: number;
+  max_saving_pct: number;
+  windows: FareWindow[];
+  carriers: CarrierFare[];
+  trend_pct: number | null;
+  trend_direction: "up" | "down" | "flat";
+}
+
 async function getJSON<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`);
   if (!res.ok) {
@@ -106,4 +134,6 @@ export const api = {
     return getJSON<ElasticityResponse>(`/api/v1/elasticity?${params.toString()}`);
   },
   getValidation: () => getJSON<ValidationSummary>("/api/v1/validation"),
+  getTraveller: (routeLabel: string) =>
+    getJSON<TravellerSummary>(`/api/v1/traveller/${encodeURIComponent(routeLabel)}`),
 };

@@ -181,6 +181,14 @@ body {
   margin-bottom: 10px;
 }
 
+/* Separates the traveller entry from the analyst pages on a phone, where the
+   two are different audiences rather than two tabs of one dashboard. */
+.sidebar .nav-label-sub {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-soft);
+}
+
 .sidebar nav a {
   position: relative;
   display: flex;
@@ -889,5 +897,291 @@ tbody tr:hover td {
   .hamburger-btn,
   .brand .mark {
     font-size: 14px;
+  }
+}
+
+/* ------------------------------------------------- traveller (phone) view --
+   The analyst pages answer "how is the index moving". This one answers a
+   passenger's question -- what does this route cost and when should I book --
+   so it is built from headline numbers and plain-language rows, with no
+   charts to read. Sized for a thumb on a phone, but it holds up on desktop
+   too (capped width) since /fares is reachable from any screen. */
+
+.tv {
+  max-width: 560px;
+  margin: 0 auto;
+  padding-bottom: 40px;
+}
+
+.tv-head h1 {
+  font-size: 26px;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+}
+
+.tv-head p {
+  margin: 0 0 22px;
+  color: var(--ink-2);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.tv-picker {
+  display: block;
+  margin-bottom: 20px;
+}
+
+.tv-picker span {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 7px;
+}
+
+.tv-picker select {
+  width: 100%;
+  /* 48px keeps the control inside a comfortable touch target. */
+  height: 48px;
+  padding: 0 14px;
+  font-size: 16px;
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-2) 50%),
+    linear-gradient(135deg, var(--ink-2) 50%, transparent 50%);
+  background-position: calc(100% - 19px) 21px, calc(100% - 14px) 21px;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.tv-picker select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.tv-empty {
+  color: var(--ink-2);
+  font-size: 15px;
+  padding: 24px 0;
+}
+
+/* -- headline number -- */
+
+.tv-headline {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 22px;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, var(--accent-wash), transparent 65%), var(--surface);
+  margin-bottom: 14px;
+}
+
+.tv-route {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.tv-fare {
+  font-size: 42px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.tv-fare-note {
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.tv-trend {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 550;
+}
+
+/* Falling fares are good news for a traveller, so down is the positive
+   colour here -- the inverse of how a price index reads on the analyst side. */
+.tv-trend-down {
+  color: var(--good);
+}
+
+.tv-trend-up {
+  color: var(--bad);
+}
+
+/* -- the advice card -- */
+
+.tv-advice {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  margin-bottom: 26px;
+}
+
+.tv-advice-kicker {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--accent-hi);
+  margin-bottom: 5px;
+}
+
+.tv-advice strong {
+  display: block;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.tv-advice p {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+.tv-advice b {
+  color: var(--ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tv-advice b.tv-save {
+  color: var(--good);
+}
+
+/* -- value rows -- */
+
+.tv-block {
+  margin-bottom: 26px;
+}
+
+.tv-block h2 {
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin: 0 0 10px;
+  font-weight: 600;
+}
+
+.tv-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tv-row {
+  position: relative;
+  /* Clips the proportional fill to the row's rounded corners. */
+  overflow: hidden;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding: 0 15px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+/* A width-proportional wash behind each row. It gives the price list a sense
+   of scale at a glance; the number itself stays the thing you read. */
+.tv-row-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: -1;
+  background: var(--surface-3);
+}
+
+.tv-row-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  color: var(--ink-2);
+}
+
+.tv-row-value {
+  font-size: 17px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tv-best {
+  border-color: var(--accent-line);
+}
+
+.tv-best .tv-row-label,
+.tv-best .tv-row-value {
+  color: var(--ink);
+}
+
+.tv-best .tv-row-fill {
+  background: var(--accent-wash);
+}
+
+.tv-tag {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--accent-hi);
+  border: 1px solid var(--accent-line);
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+
+.tv-fine {
+  margin: 9px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+
+.tv-note {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-muted);
+  border-top: 1px solid var(--line-soft);
+  padding-top: 16px;
+  margin: 0 0 18px;
+}
+
+.tv-analyst-link {
+  display: inline-block;
+  font-size: 14px;
+  color: var(--accent-hi);
+  text-decoration: none;
+}
+
+.tv-analyst-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 860px) {
+  .tv-head h1 {
+    font-size: 23px;
+  }
+
+  .tv-fare {
+    font-size: 38px;
   }
 }

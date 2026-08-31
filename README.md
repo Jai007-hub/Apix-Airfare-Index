@@ -83,6 +83,24 @@ npm run dev
 # -> http://localhost:5173
 ```
 
+### Two audiences, two front ends
+
+The dashboard serves a different landing page depending on screen width:
+
+- **Laptop / desktop** opens the **analyst view** — the index trend, sector
+  heatmap, lead-time curve and the CPI back-test, with the "explain this
+  number" audit trail behind every index point.
+- **Phone** opens the **traveller view** at `/fares` — no charts, just the
+  numbers a passenger needs: the typical fare on a route, which advance-booking
+  window is cheapest and what that saves, a like-for-like airline comparison at
+  that window, and whether fares are rising or falling.
+
+Both are reachable from either device: `/fares` is a stable address, and the
+sidebar links across in both directions. The two views read the *same* cleaned
+fare table — the traveller view is a different question asked of the same data
+(`index/traveller.py`, served at `GET /api/v1/traveller/{route}`), not a
+separate dataset.
+
 ### Opening it from your phone
 
 Both servers bind to all network interfaces, so on the same Wi-Fi you can
@@ -150,7 +168,8 @@ scraper/    scraping engine (Scrapy+Playwright spiders, ethical-scraping
             middlewares, scheduler) + the calibrated synthetic generator
 pipeline/   RawObservation -> CleanFare (decomposition, outlier removal, dedupe)
 db/         SQLAlchemy schema (SQLite by default, DATABASE_URL for Postgres)
-index/      APIx construction, basket weights, elasticity, heatmap
+index/      APIx construction, basket weights, elasticity, heatmap,
+            traveller-facing route summary
 validation/ backtest against cpi_1054.xlsx (the real CPI airfare sub-index)
 api/        FastAPI app
 dashboard/  React + Vite + Recharts UI
