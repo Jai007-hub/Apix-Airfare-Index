@@ -19,7 +19,7 @@ Methodology:
 """
 import statistics
 from calendar import month_name
-from datetime import date
+from datetime import date, timedelta
 
 import openpyxl
 from sqlalchemy.orm import Session
@@ -115,8 +115,22 @@ def run_backtest(session: Session, xlsx_path: str) -> dict:
             )
     session.commit()
 
+    # The requirement is stated in days, but CPI is only published monthly, so
+    # the comparison points are monthly while the window they span is measured
+    # in days -- report both rather than leaving "6" to look like 6 days.
+    window_start = date(results[0]["year"], results[0]["month"], 1)
+    last_month_start = date(results[-1]["year"], results[-1]["month"], 1)
+    window_end = (
+        date(last_month_start.year + 1, 1, 1)
+        if last_month_start.month == 12
+        else date(last_month_start.year, last_month_start.month + 1, 1)
+    ) - timedelta(days=1)
+
     return {
         "n_months_compared": len(results),
+        "days_covered": (window_end - window_start).days + 1,
+        "window_start": window_start,
+        "window_end": window_end,
         "rebase_scale_factor": round(scale, 6),
         "mape_pct": round(mape, 3),
         "pearson_correlation": round(correlation, 4) if correlation is not None else None,

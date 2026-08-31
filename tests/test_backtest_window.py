@@ -1,0 +1,97 @@
+from datetime import date
+
+from db.models import IndexValue
+from validation.backtest import run_backtest
+
+
+def _seed_monthly_index(db_session, months, base=date(2025, 1, 1)):
+    for (year, month), value in months.items():
+        db_session.add(
+            IndexValue(
+                frequency="monthly",
+                period_date=date(year, month, 1),
+                apix_value=value,
+                base_period_date=base,
+            )
+        )
+    db_session.commit()
+
+
+def test_days_covered_spans_whole_months_not_just_month_starts(db_session, tmp_path):
+    """The requirement is written in days but CPI only publishes monthly, so the
+    window has to be measured to the END of the last compared month."""
+    import openpyxl
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "CPI Data"
+    ws.append(
+        ["base_year", "series", "year", "month", "state", "sector", "division", "group",
+         "class", "sub_class", "item", "code", "index", "inflation", "imputation"]
+    )
+    # Three consecutive months of All-India CPI: Jan, Feb, Mar 2025.
+    for month_name_, idx in [("January", 100.0), ("February", 102.0), ("March", 104.0)]:
+        ws.append(
+            ["2024", "Current", "2025", month_name_, "All India", "Combined", "Transport",
+             "grp", "cls", "sub", "Airfare", "07", idx, 0.0, "N"]
+        )
+    xlsx = tmp_path / "cpi.xlsx"
+    wb.save(xlsx)
+
+    _seed_monthly_index(
+        db_session, {(2025, 1): 100.0, (2025, 2): 101.0, (2025, 3): 103.0}
+    )
+
+    result = run_backtest(db_session, str(xlsx))
+
+    assert result["n_months_compared"] == 3
+    assert result["window_start"] == date(2025, 1, 1)
+    # Must run to 31 March, not 1 March -- otherwise the day count is short by
+    # nearly a month and understates the coverage.
+    assert result["window_end"] == date(2025, 3, 31)
+    assert result["days_covered"] == 31 + 28 + 31  # Jan + Feb + Mar 2025
+
+
+def test_days_covered_handles_a_december_end_month(db_session, tmp_path):
+    """December has to roll into the next year when finding the month end."""
+    import openpyxl
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "CPI Data"
+    ws.append(["c"] * 15)
+    for month_name_, idx in [("November", 100.0), ("December", 101.0)]:
+        ws.append(
+            ["2024", "Current", "2025", month_name_, "All India", "Combined", "Transport",
+             "grp", "cls", "sub", "Airfare", "07", idx, 0.0, "N"]
+        )
+    xlsx = tmp_path / "cpi.xlsx"
+    wb.save(xlsx)
+
+    _seed_monthly_index(db_session, {(2025, 11): 100.0, (2025, 12): 102.0})
+
+    result = run_backtest(db_session, str(xlsx))
+
+    assert result["window_end"] == date(2025, 12, 31)
+    assert result["days_covered"] == 30 + 31  # Nov + Dec
+
+
+def test_window_comfortably_exceeds_the_30_day_requirement(db_session, tmp_path):
+    """Two adjacent months already clear the problem statement's 30-day floor."""
+    import openpyxl
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "CPI Data"
+    ws.append(["c"] * 15)
+    for month_name_, idx in [("June", 120.0), ("July", 121.0)]:
+        ws.append(
+            ["2024", "Current", "2026", month_name_, "All India", "Combined", "Transport",
+             "grp", "cls", "sub", "Airfare", "07", idx, 0.0, "N"]
+        )
+    xlsx = tmp_path / "cpi.xlsx"
+    wb.save(xlsx)
+
+    _seed_monthly_index(db_session, {(2026, 6): 118.0, (2026, 7): 119.0})
+
+    assert run_backtest(db_session, str(xlsx))["days_covered"] >= 30

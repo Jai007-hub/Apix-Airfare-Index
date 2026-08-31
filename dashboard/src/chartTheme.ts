@@ -15,19 +15,21 @@ export const chart = {
   series1: "#3987e5", // APIx
   series2: "#d95926", // CPI
 
-  /** Sequential blue ramp for the heatmap, low -> high. On a dark surface the
-   *  low end recedes toward the background and the high end brightens, so cell
-   *  luminance reads directly as "more expensive". Single hue, never a rainbow. */
+  /** Sequential blue ramp for the heatmap, low -> high: pale for cheap fares,
+   *  deepening as they get expensive, so "darker = costs more" reads the same
+   *  way people read a printed heat table. Single hue, never a rainbow.
+   *  The deep end stops at #104281 rather than going near-black, so the most
+   *  expensive cells stay clearly distinct from the #14171c card surface. */
   sequential: [
-    "#104281",
-    "#184f95",
-    "#1c5cab",
-    "#256abf",
-    "#2a78d6",
-    "#3987e5",
-    "#5598e7",
-    "#6da7ec",
+    "#c6dcf9",
+    "#a8c9f5",
     "#86b6ef",
+    "#6da7ec",
+    "#5598e7",
+    "#3987e5",
+    "#2a78d6",
+    "#1c5cab",
+    "#104281",
   ],
 } as const;
 
@@ -56,10 +58,11 @@ export function sequentialColor(value: number, min: number, max: number): string
   return ramp[idx];
 }
 
-/** Ink that stays legible on a given ramp step -- the bright top of the ramp
- *  needs dark text, the deep end needs light text. */
+/** Ink that stays legible on a given ramp step. Cheap fares sit on the pale
+ *  end of the ramp and need dark text; expensive ones sit on the deep end and
+ *  need light text. */
 export function sequentialTextColor(value: number, min: number, max: number): string {
   if (!(max > min)) return "#eaeef4";
   const t = (value - min) / (max - min);
-  return t > 0.72 ? "#0a1120" : "#eaeef4";
+  return t < 0.45 ? "#0a1120" : "#eaeef4";
 }

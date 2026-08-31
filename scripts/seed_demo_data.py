@@ -33,7 +33,9 @@ DEFAULT_CPI_XLSX = PROJECT_ROOT / "cpi_1054.xlsx"
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Seed the APIx demo database end-to-end")
-    parser.add_argument("--start", type=str, default="2026-02-01")
+    # Starts where cpi_1054.xlsx's own coverage starts, so the back-test has
+    # every available CPI month to compare against rather than a slice.
+    parser.add_argument("--start", type=str, default="2025-01-01")
     parser.add_argument("--end", type=str, default=date.today().isoformat())
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--cpi-xlsx", type=str, default=str(DEFAULT_CPI_XLSX))

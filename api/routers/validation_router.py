@@ -1,4 +1,5 @@
 import statistics
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -39,8 +40,20 @@ def get_validation(db: Session = Depends(get_db)):
         except statistics.StatisticsError:
             correlation = None
 
+    # CPI publishes monthly, so comparison points are monthly -- but the
+    # requirement is phrased in days, so report the span the window covers too.
+    window_start = rows[0].period_month
+    last = rows[-1].period_month
+    next_month = (
+        date(last.year + 1, 1, 1) if last.month == 12 else date(last.year, last.month + 1, 1)
+    )
+    window_end = next_month - timedelta(days=1)
+
     return {
         "n_months_compared": len(points),
+        "days_covered": (window_end - window_start).days + 1,
+        "window_start": window_start,
+        "window_end": window_end,
         "mape_pct": round(mape, 3),
         "pearson_correlation": round(correlation, 4) if correlation is not None else None,
         "points": points,

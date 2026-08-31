@@ -38,6 +38,8 @@ export default function Validation() {
           The computed monthly APIx, rebased to match the CPI level in the first overlapping month,
           against MoSPI's official All-India "Passenger transport by air, domestic" sub-index. Because
           the two series use different base periods, the comparison tests <em>trend</em>, not level.
+          CPI is only published monthly, so the back-test window spans many days but compares at
+          monthly points.
         </p>
       </div>
 
@@ -48,9 +50,16 @@ export default function Validation() {
         <>
           <div className="stat-row">
             <div className="stat">
-              <div className="label">Months compared</div>
+              <div className="label">Days back-tested</div>
+              <div className="value">{data.days_covered.toLocaleString("en-IN")}</div>
+              <div className="hint">
+                {data.window_start} to {data.window_end}
+              </div>
+            </div>
+            <div className="stat">
+              <div className="label">Comparison points</div>
               <div className="value">{data.n_months_compared}</div>
-              <div className="hint">Overlapping periods</div>
+              <div className="hint">CPI is published monthly</div>
             </div>
             <div className="stat">
               <div className="label">MAPE</div>

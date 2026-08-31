@@ -35,6 +35,9 @@ export interface ValidationPoint {
 
 export interface ValidationSummary {
   n_months_compared: number;
+  days_covered: number;
+  window_start: string;
+  window_end: string;
   mape_pct: number;
   pearson_correlation: number | null;
   points: ValidationPoint[];
