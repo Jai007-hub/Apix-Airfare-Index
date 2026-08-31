@@ -51,7 +51,14 @@ export default function Validation() {
           <div className="stat-row">
             <div className="stat">
               <div className="label">Days back-tested</div>
-              <div className="value">{data.days_covered.toLocaleString("en-IN")}</div>
+              <div className="value">
+                {data.days_covered.toLocaleString("en-IN")}
+                {data.days_covered >= 30 && (
+                  <span className="req-met" title="Problem statement requires at least 30 days">
+                    ✓ ≥30 required
+                  </span>
+                )}
+              </div>
               <div className="hint">
                 {data.window_start} to {data.window_end}
               </div>

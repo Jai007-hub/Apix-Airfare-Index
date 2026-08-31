@@ -469,3 +469,19 @@
     transition-duration: 0.001ms !important;
   }
 }
+
+/* Marks a stat that satisfies a stated problem-statement threshold, so
+   compliance is visible on the page rather than left to be worked out. */
+.req-met {
+  display: inline-block;
+  margin-left: 9px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  vertical-align: middle;
+  color: var(--good);
+  background: rgba(53, 196, 107, 0.13);
+  border: 1px solid rgba(53, 196, 107, 0.38);
+}
