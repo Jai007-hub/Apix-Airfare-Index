@@ -598,11 +598,29 @@ tbody tr:hover td {
   color: var(--ink-2);
 }
 
+/* Explicit column counts rather than auto-fit: there are exactly five cards,
+   and auto-fit strands the fifth on a row of its own at most widths. */
 .nav-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(232px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 14px;
   margin-bottom: 22px;
+}
+
+/* Three across leaves a tidy 3 + 2 rather than a lone card. Keyed to the
+   same 861px cutoff as the traveller view, since below it a phone gets the
+   traveller view and this page never renders at all. */
+@media (min-width: 861px) {
+  .nav-cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Wide enough for all five in one row. */
+@media (min-width: 1200px) {
+  .nav-cards {
+    grid-template-columns: repeat(5, 1fr);
+  }
 }
 
 .nav-card {

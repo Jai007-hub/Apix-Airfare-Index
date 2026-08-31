@@ -5,6 +5,12 @@ import { api, IndexPoint, RouteInfo, ValidationSummary } from "../api/client";
 
 const SECTIONS = [
   {
+    to: "/fares",
+    ico: "✈",
+    title: "Traveller View",
+    body: "The consumer side of the same data — what a route costs and when to book.",
+  },
+  {
     to: "/index-trend",
     ico: "◔",
     title: "Index Trend",
