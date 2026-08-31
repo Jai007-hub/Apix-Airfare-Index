@@ -29,6 +29,36 @@ from db.models import IndexValue, ValidationResult
 _MONTH_NUMBER = {name: i for i, name in enumerate(month_name) if name}
 
 
+
+def directional_agreement(apix: list[float], cpi: list[float]) -> dict | None:
+    """How often APIx and CPI moved the same way from one month to the next.
+
+    Pearson r on a short series is fragile -- one noisy month can swing it a
+    long way. "Did both series rise, or both fall" is a blunter question that
+    no single month can dominate, so it is a useful sanity check to read
+    alongside the correlation rather than instead of it.
+
+    n months give n-1 moves, so the denominator is one less than the number of
+    comparison points.
+    """
+    if len(apix) < 2 or len(apix) != len(cpi):
+        return None
+
+    matches = 0
+    for i in range(1, len(apix)):
+        a = apix[i] - apix[i - 1]
+        c = cpi[i] - cpi[i - 1]
+        # Both up, both down, or both exactly flat.
+        if (a > 0 and c > 0) or (a < 0 and c < 0) or (a == 0 and c == 0):
+            matches += 1
+
+    comparisons = len(apix) - 1
+    return {
+        "matches": matches,
+        "comparisons": comparisons,
+        "pct": round(matches / comparisons * 100, 1),
+    }
+
 def load_cpi_all_india_series(xlsx_path: str) -> list[dict]:
     wb = openpyxl.load_workbook(xlsx_path, data_only=True)
     ws = wb["CPI Data"]
@@ -134,5 +164,8 @@ def run_backtest(session: Session, xlsx_path: str) -> dict:
         "rebase_scale_factor": round(scale, 6),
         "mape_pct": round(mape, 3),
         "pearson_correlation": round(correlation, 4) if correlation is not None else None,
+        "directional_agreement": directional_agreement(
+            [r["apix_rebased"] for r in results], [r["cpi_index"] for r in results]
+        ),
         "results": results,
     }

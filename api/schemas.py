@@ -47,8 +47,15 @@ class ValidationPoint(BaseModel):
     pct_diff: float
 
 
+class DirectionalAgreement(BaseModel):
+    matches: int
+    comparisons: int
+    pct: float
+
+
 class ValidationSummary(BaseModel):
     n_months_compared: int
     mape_pct: float
     pearson_correlation: float | None
+    directional_agreement: DirectionalAgreement | None
     points: list[ValidationPoint]

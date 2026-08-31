@@ -33,6 +33,14 @@ export interface ValidationPoint {
   pct_diff: number;
 }
 
+export interface DirectionalAgreement {
+  /** Month-on-month moves where APIx and CPI went the same way. */
+  matches: number;
+  /** n months give n-1 moves, so this is one less than the point count. */
+  comparisons: number;
+  pct: number;
+}
+
 export interface ValidationSummary {
   n_months_compared: number;
   days_covered: number;
@@ -40,6 +48,7 @@ export interface ValidationSummary {
   window_end: string;
   mape_pct: number;
   pearson_correlation: number | null;
+  directional_agreement: DirectionalAgreement | null;
   points: ValidationPoint[];
 }
 

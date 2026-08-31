@@ -14,7 +14,7 @@ downstream consumer can call them directly from a browser or server.
 | `GET /api/v1/fares` | `route`, `carrier`, `advance_window_days`, `start`, `end`, `limit` | Clean daily fare cells: origin, destination, carrier, advance-purchase window, fare class, and the full fare split (base / taxes / UDF / convenience fee / total) |
 | `GET /api/v1/heatmap` | `start`, `end`, `frequency` (weekly\|monthly) | `{periods, routes, matrix}` -- route x period avg fare |
 | `GET /api/v1/elasticity` | `start`, `end` | `{route_label: [{advance_window_days, avg_fare}]}` |
-| `GET /api/v1/validation` | -- | APIx vs CPI comparison: `{n_months_compared, mape_pct, pearson_correlation, points}` |
+| `GET /api/v1/validation` | -- | APIx vs CPI comparison: `{n_months_compared, mape_pct, pearson_correlation, directional_agreement, points}` |
 | `GET /api/v1/traveller` | -- | Every tracked sector at its best current fare, cheapest first: `[{route, origin, destination, best_fare}]` |
 | `GET /api/v1/traveller/{route_label}` | -- (route in path, e.g. `DEL-BOM`) | Consumer-facing route summary: `{typical_fare, cheapest_window, dearest_window, max_saving, max_saving_pct, windows, fare_breakdown, carriers, months, trend_pct, trend_direction}` |
 
@@ -53,3 +53,17 @@ All figures average the most recent 7 days of observations to smooth
 day-to-day noise. Route labels are case-insensitive. Returns `404` for an
 unknown route, and also for a route that has stopped reporting -- quoting a
 months-old fare as if it were current would be worse than returning nothing.
+
+## `directional_agreement` on `/api/v1/validation`
+
+`{matches, comparisons, pct}` -- how often APIx and CPI moved the same way
+from one month to the next.
+
+Pearson r on a short series is fragile: one noisy month can swing it a long
+way, which makes a single correlation figure easy to over-read. "Did both
+series rise, or both fall" is a blunter question that no single month can
+dominate, so it is reported alongside r rather than instead of it.
+
+`comparisons` is one less than `n_months_compared` -- n months give n-1
+month-on-month moves. Returns `null` below two points. A month where either
+series is exactly flat only counts as agreement if both are.

@@ -15,6 +15,7 @@ import { axisProps, chart, tooltipStyle } from "../chartTheme";
 
 export default function Validation() {
   const [data, setData] = useState<ValidationSummary | null>(null);
+  const [showCorrelation, setShowCorrelation] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -73,12 +74,55 @@ export default function Validation() {
               <div className="value">{data.mape_pct.toFixed(2)}%</div>
               <div className="hint">Mean absolute % difference</div>
             </div>
-            <div className="stat">
-              <div className="label">Correlation</div>
+            <button
+              type="button"
+              className={showCorrelation ? "stat stat-expandable is-open" : "stat stat-expandable"}
+              onClick={() => setShowCorrelation((open) => !open)}
+              aria-expanded={showCorrelation}
+              aria-controls="correlation-detail"
+            >
+              <div className="label">
+                Correlation
+                <span className="stat-more" aria-hidden="true">
+                  {showCorrelation ? "−" : "?"}
+                </span>
+              </div>
               <div className="value">{data.pearson_correlation?.toFixed(3) ?? "—"}</div>
-              <div className="hint">Pearson r, APIx vs CPI</div>
-            </div>
+              <div className="hint">Pearson r, APIx vs CPI — tap to read</div>
+            </button>
           </div>
+
+          {showCorrelation && (
+            <div className="card correlation-detail" id="correlation-detail">
+              <h3>
+                Reading the correlation<span className="sub">why r alone misleads here</span>
+              </h3>
+              {data.directional_agreement ? (
+                <p className="corr-headline">
+                  <strong>Directional agreement:</strong>{" "}
+                  {data.directional_agreement.matches} out of{" "}
+                  {data.directional_agreement.comparisons} month-on-month moves went
+                  the same way as CPI ({data.directional_agreement.pct.toFixed(0)}%).
+                </p>
+              ) : (
+                <p className="corr-headline">
+                  <strong>Directional agreement:</strong> not enough months to compare
+                  directions yet.
+                </p>
+              )}
+              <p>
+                Correlation can be unstable across {data.n_months_compared} data points
+                — a single month's noise can swing it. MAPE ({data.mape_pct.toFixed(2)}%)
+                is a more reliable measure of how closely APIx tracks CPI at this sample
+                size.
+              </p>
+              <p className="corr-fine">
+                {data.n_months_compared} monthly points give{" "}
+                {data.n_months_compared - 1} month-on-month moves, which is why the
+                denominator above is one less than the comparison-point count.
+              </p>
+            </div>
+          )}
 
           <div className="card">
             <h3>

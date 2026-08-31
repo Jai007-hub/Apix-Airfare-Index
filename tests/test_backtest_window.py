@@ -1,7 +1,7 @@
 from datetime import date
 
 from db.models import IndexValue
-from validation.backtest import run_backtest
+from validation.backtest import directional_agreement, run_backtest
 
 
 def _seed_monthly_index(db_session, months, base=date(2025, 1, 1)):
@@ -95,3 +95,46 @@ def test_window_comfortably_exceeds_the_30_day_requirement(db_session, tmp_path)
     _seed_monthly_index(db_session, {(2026, 6): 118.0, (2026, 7): 119.0})
 
     assert run_backtest(db_session, str(xlsx))["days_covered"] >= 30
+
+
+# -- directional agreement ----------------------------------------------------
+# Pearson r on a short series swings on one noisy month; "did both move the
+# same way" is the blunter check shown alongside it.
+
+
+def test_series_that_always_move_together_agree_completely():
+    apix = [100.0, 105.0, 103.0, 108.0]
+    cpi = [200.0, 210.0, 190.0, 220.0]  # same ups and downs, different scale
+    assert directional_agreement(apix, cpi) == {"matches": 3, "comparisons": 3, "pct": 100.0}
+
+
+def test_series_that_always_move_oppositely_agree_never():
+    apix = [100.0, 105.0, 103.0, 108.0]
+    cpi = [200.0, 190.0, 210.0, 190.0]
+    assert directional_agreement(apix, cpi) == {"matches": 0, "comparisons": 3, "pct": 0.0}
+
+
+def test_denominator_is_moves_not_months():
+    """Four months give three month-on-month moves -- reporting "out of 4"
+    would overstate the sample."""
+    result = directional_agreement([1.0, 2.0, 3.0, 4.0], [1.0, 2.0, 3.0, 4.0])
+    assert result["comparisons"] == 3
+
+
+def test_mixed_directions_are_counted_not_rounded_away():
+    #        up/up      down/up     up/up
+    apix = [100.0, 110.0, 105.0, 115.0]
+    cpi = [100.0, 110.0, 120.0, 130.0]
+    assert directional_agreement(apix, cpi) == {"matches": 2, "comparisons": 3, "pct": 66.7}
+
+
+def test_a_flat_month_only_agrees_with_another_flat_month():
+    assert directional_agreement([100.0, 100.0], [100.0, 100.0])["matches"] == 1
+    assert directional_agreement([100.0, 100.0], [100.0, 101.0])["matches"] == 0
+
+
+def test_too_few_points_reports_nothing_rather_than_a_misleading_zero():
+    assert directional_agreement([100.0], [100.0]) is None
+    assert directional_agreement([], []) is None
+    # Mismatched lengths would silently truncate; refuse instead.
+    assert directional_agreement([100.0, 101.0], [100.0]) is None
