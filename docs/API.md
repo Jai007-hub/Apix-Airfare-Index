@@ -14,7 +14,7 @@ downstream consumer can call them directly from a browser or server.
 | `GET /api/v1/fares` | `route`, `carrier`, `advance_window_days`, `start`, `end`, `limit` | Clean daily fare cells: origin, destination, carrier, advance-purchase window, fare class, and the full fare split (base / taxes / UDF / convenience fee / total) |
 | `GET /api/v1/heatmap` | `start`, `end`, `frequency` (weekly\|monthly) | `{periods, routes, matrix}` -- route x period avg fare |
 | `GET /api/v1/elasticity` | `start`, `end` | `{route_label: [{advance_window_days, avg_fare}]}` |
-| `GET /api/v1/validation` | -- | APIx vs CPI comparison: `{n_months_compared, mape_pct, pearson_correlation, directional_agreement, points}` |
+| `GET /api/v1/validation` | -- | APIx vs CPI comparison: `{n_months_compared, mape_pct, pearson_correlation, directional_agreement, deviation_profile, points}` |
 | `GET /api/v1/traveller` | -- | Every tracked sector at its best current fare, cheapest first: `[{route, origin, destination, best_fare}]` |
 | `GET /api/v1/traveller/{route_label}` | -- (route in path, e.g. `DEL-BOM`) | Consumer-facing route summary: `{typical_fare, cheapest_window, dearest_window, max_saving, max_saving_pct, windows, fare_breakdown, carriers, months, trend_pct, trend_direction}` |
 
@@ -67,3 +67,19 @@ dominate, so it is reported alongside r rather than instead of it.
 `comparisons` is one less than `n_months_compared` -- n months give n-1
 month-on-month moves. Returns `null` below two points. A month where either
 series is exactly flat only counts as agreement if both are.
+
+## `deviation_profile` on `/api/v1/validation`
+
+`{median_abs_pct, best_month, worst_month, within_5pct, n,
+excludes_rebase_anchor}` -- the distribution behind the MAPE headline.
+
+A mean hides its own shape: the same MAPE can come from every month being
+mediocre or from most months being close and one being terrible. The median
+and the extremes say which.
+
+**The first overlapping month is excluded.** Rebasing scales APIx to match CPI
+exactly there, so its deviation is `0.000%` by construction. Reporting that as
+the closest month would present an arithmetic identity as a result, so `n` is
+one less than `n_months_compared`. Note that `mape_pct` itself is still
+computed over *all* months including that anchor, which flatters it slightly
+at small sample sizes.

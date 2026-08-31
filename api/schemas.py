@@ -53,9 +53,24 @@ class DirectionalAgreement(BaseModel):
     pct: float
 
 
+class DeviationMonth(BaseModel):
+    year: int
+    month: int
+    abs_pct: float
+
+
+class DeviationProfile(BaseModel):
+    median_abs_pct: float
+    best_month: DeviationMonth
+    worst_month: DeviationMonth
+    within_5pct: int
+    n: int
+
+
 class ValidationSummary(BaseModel):
     n_months_compared: int
     mape_pct: float
     pearson_correlation: float | None
     directional_agreement: DirectionalAgreement | None
+    deviation_profile: DeviationProfile | None
     points: list[ValidationPoint]

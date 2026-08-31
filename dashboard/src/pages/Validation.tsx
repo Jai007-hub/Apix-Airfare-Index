@@ -13,9 +13,20 @@ import {
 import { api, ValidationSummary } from "../api/client";
 import { axisProps, chart, tooltipStyle } from "../chartTheme";
 
+const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+const monthLabel = (m: { year: number; month: number }) =>
+  `${MONTHS[m.month - 1]} ${m.year}`;
+
 export default function Validation() {
   const [data, setData] = useState<ValidationSummary | null>(null);
-  const [showCorrelation, setShowCorrelation] = useState(false);
+  const [openStat, setOpenStat] = useState<"mape" | "correlation" | null>(null);
+
+  const toggle = (which: "mape" | "correlation") =>
+    setOpenStat((current) => (current === which ? null : which));
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -69,22 +80,33 @@ export default function Validation() {
               <div className="value">{data.n_months_compared}</div>
               <div className="hint">CPI is published monthly</div>
             </div>
-            <div className="stat">
-              <div className="label">MAPE</div>
-              <div className="value">{data.mape_pct.toFixed(2)}%</div>
-              <div className="hint">Mean absolute % difference</div>
-            </div>
             <button
               type="button"
-              className={showCorrelation ? "stat stat-expandable is-open" : "stat stat-expandable"}
-              onClick={() => setShowCorrelation((open) => !open)}
-              aria-expanded={showCorrelation}
+              className={openStat === "mape" ? "stat stat-expandable is-open" : "stat stat-expandable"}
+              onClick={() => toggle("mape")}
+              aria-expanded={openStat === "mape"}
+              aria-controls="mape-detail"
+            >
+              <div className="label">
+                MAPE
+                <span className="stat-more" aria-hidden="true">
+                  {openStat === "mape" ? "−" : "?"}
+                </span>
+              </div>
+              <div className="value">{data.mape_pct.toFixed(2)}%</div>
+              <div className="hint">Mean absolute % difference — tap to read</div>
+            </button>
+            <button
+              type="button"
+              className={openStat === "correlation" ? "stat stat-expandable is-open" : "stat stat-expandable"}
+              onClick={() => toggle("correlation")}
+              aria-expanded={openStat === "correlation"}
               aria-controls="correlation-detail"
             >
               <div className="label">
                 Correlation
                 <span className="stat-more" aria-hidden="true">
-                  {showCorrelation ? "−" : "?"}
+                  {openStat === "correlation" ? "−" : "?"}
                 </span>
               </div>
               <div className="value">{data.pearson_correlation?.toFixed(3) ?? "—"}</div>
@@ -92,7 +114,63 @@ export default function Validation() {
             </button>
           </div>
 
-          {showCorrelation && (
+          {openStat === "mape" && (
+            <div className="card correlation-detail" id="mape-detail">
+              <h3>
+                Reading the MAPE<span className="sub">average monthly deviation</span>
+              </h3>
+              <p className="corr-headline">
+                <strong>Average monthly deviation from CPI:</strong>{" "}
+                {data.mape_pct.toFixed(2)}% — the more reliable accuracy measure at
+                this sample size.
+              </p>
+              <p>
+                Each month, APIx (rebased) is compared against the CPI airfare
+                sub-index and the gap taken as a percentage. MAPE is the mean of those
+                gaps ignoring sign, so a month 8% high and a month 8% low both count
+                as 8% off rather than cancelling out.
+              </p>
+              {data.deviation_profile && (
+                <>
+                  <ul className="corr-list">
+                    <li>
+                      <span>Median month</span>
+                      <strong>{data.deviation_profile.median_abs_pct.toFixed(2)}%</strong>
+                    </li>
+                    <li>
+                      <span>Closest month</span>
+                      <strong>
+                        {monthLabel(data.deviation_profile.best_month)} ·{" "}
+                        {data.deviation_profile.best_month.abs_pct.toFixed(2)}%
+                      </strong>
+                    </li>
+                    <li>
+                      <span>Furthest month</span>
+                      <strong>
+                        {monthLabel(data.deviation_profile.worst_month)} ·{" "}
+                        {data.deviation_profile.worst_month.abs_pct.toFixed(2)}%
+                      </strong>
+                    </li>
+                    <li>
+                      <span>Within 5% of CPI</span>
+                      <strong>
+                        {data.deviation_profile.within_5pct} of {data.deviation_profile.n}{" "}
+                        months
+                      </strong>
+                    </li>
+                  </ul>
+                  <p className="corr-fine">
+                    A mean hides its own shape, so the median and the extremes are shown
+                    beside it. These exclude the first overlapping month: rebasing scales
+                    APIx to match CPI exactly there, so its 0.00% deviation is an
+                    arithmetic identity rather than a measure of accuracy.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+
+          {openStat === "correlation" && (
             <div className="card correlation-detail" id="correlation-detail">
               <h3>
                 Reading the correlation<span className="sub">why r alone misleads here</span>

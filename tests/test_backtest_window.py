@@ -1,7 +1,11 @@
 from datetime import date
 
 from db.models import IndexValue
-from validation.backtest import directional_agreement, run_backtest
+from validation.backtest import (
+    deviation_profile,
+    directional_agreement,
+    run_backtest,
+)
 
 
 def _seed_monthly_index(db_session, months, base=date(2025, 1, 1)):
@@ -138,3 +142,61 @@ def test_too_few_points_reports_nothing_rather_than_a_misleading_zero():
     assert directional_agreement([], []) is None
     # Mismatched lengths would silently truncate; refuse instead.
     assert directional_agreement([100.0, 101.0], [100.0]) is None
+
+
+# -- deviation profile --------------------------------------------------------
+# The distribution behind the MAPE headline, so a mean isn't read on its own.
+
+
+def _pt(year, month, pct):
+    return {"year": year, "month": month, "pct_diff": pct}
+
+
+def test_rebase_anchor_is_not_reported_as_the_best_month():
+    """Rebasing forces the first overlapping month to 0.000% deviation. That
+    is an arithmetic identity, not accuracy, so it must not win 'best month'
+    -- otherwise every back-test claims a perfect month it did not earn."""
+    points = [_pt(2025, 1, 0.0), _pt(2025, 2, -3.0), _pt(2025, 3, 8.0)]
+
+    profile = deviation_profile(points)
+
+    assert profile["best_month"] == {"year": 2025, "month": 2, "abs_pct": 3.0}
+    assert profile["n"] == 2
+    assert profile["excludes_rebase_anchor"] is True
+
+
+def test_reports_the_worst_month_by_absolute_deviation():
+    """Sign must not decide it -- a -19% month is as far off as +19%."""
+    points = [_pt(2025, 1, 0.0), _pt(2025, 2, 4.0), _pt(2025, 3, -19.0), _pt(2025, 4, 12.0)]
+
+    assert deviation_profile(points)["worst_month"] == {
+        "year": 2025,
+        "month": 3,
+        "abs_pct": 19.0,
+    }
+
+
+def test_median_describes_the_middle_not_the_mean():
+    """One terrible month drags the mean but not the median -- which is the
+    whole reason both are shown."""
+    points = [_pt(2025, 1, 0.0), _pt(2025, 2, 2.0), _pt(2025, 3, 3.0), _pt(2025, 4, 40.0)]
+
+    profile = deviation_profile(points)
+
+    assert profile["median_abs_pct"] == 3.0  # mean of the same three is 15.0
+
+
+def test_within_5pct_includes_the_boundary_and_ignores_sign():
+    points = [
+        _pt(2025, 1, 0.0),
+        _pt(2025, 2, 5.0),
+        _pt(2025, 3, -5.0),
+        _pt(2025, 4, 5.01),
+    ]
+
+    assert deviation_profile(points)["within_5pct"] == 2
+
+
+def test_nothing_to_profile_once_the_anchor_is_removed():
+    assert deviation_profile([_pt(2025, 1, 0.0)]) is None
+    assert deviation_profile([]) is None

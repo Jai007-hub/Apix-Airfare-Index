@@ -30,6 +30,46 @@ _MONTH_NUMBER = {name: i for i, name in enumerate(month_name) if name}
 
 
 
+
+def deviation_profile(points: list[dict]) -> dict | None:
+    """Where the MAPE headline comes from: the spread of monthly deviations
+    behind it.
+
+    A mean hides its own shape -- the same MAPE can come from every month
+    being mediocre or from most months being close and one being terrible.
+    The median and the best/worst months say which, so the average is read
+    with its distribution rather than on its own.
+
+    The first overlapping month is dropped. Rebasing scales APIx to match CPI
+    exactly there, so its deviation is 0.000% by construction, not by
+    accuracy -- reporting it as the best month would be presenting an
+    arithmetic identity as a result.
+
+    Each point needs `year`, `month` and `pct_diff` (signed % difference).
+    """
+    comparable = points[1:]
+    if not comparable:
+        return None
+
+    scored = sorted(comparable, key=lambda p: abs(p["pct_diff"]))
+    best, worst = scored[0], scored[-1]
+    return {
+        "median_abs_pct": round(statistics.median(abs(p["pct_diff"]) for p in comparable), 3),
+        "best_month": {
+            "year": best["year"],
+            "month": best["month"],
+            "abs_pct": round(abs(best["pct_diff"]), 3),
+        },
+        "worst_month": {
+            "year": worst["year"],
+            "month": worst["month"],
+            "abs_pct": round(abs(worst["pct_diff"]), 3),
+        },
+        "within_5pct": sum(1 for p in comparable if abs(p["pct_diff"]) <= 5),
+        "n": len(comparable),
+        "excludes_rebase_anchor": True,
+    }
+
 def directional_agreement(apix: list[float], cpi: list[float]) -> dict | None:
     """How often APIx and CPI moved the same way from one month to the next.
 
@@ -167,5 +207,6 @@ def run_backtest(session: Session, xlsx_path: str) -> dict:
         "directional_agreement": directional_agreement(
             [r["apix_rebased"] for r in results], [r["cpi_index"] for r in results]
         ),
+        "deviation_profile": deviation_profile(results),
         "results": results,
     }

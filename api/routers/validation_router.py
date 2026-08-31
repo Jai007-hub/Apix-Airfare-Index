@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from db.database import get_db
 from db.models import ValidationResult
-from validation.backtest import directional_agreement
+from validation.backtest import deviation_profile, directional_agreement
 
 router = APIRouter(prefix="/api/v1/validation", tags=["validation"])
 
@@ -61,5 +61,6 @@ def get_validation(db: Session = Depends(get_db)):
             [p["apix_value_rebased"] for p in points],
             [p["cpi_airfare_value"] for p in points],
         ),
+        "deviation_profile": deviation_profile(points),
         "points": points,
     }

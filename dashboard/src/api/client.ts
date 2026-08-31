@@ -41,6 +41,23 @@ export interface DirectionalAgreement {
   pct: number;
 }
 
+export interface DeviationMonth {
+  year: number;
+  month: number;
+  abs_pct: number;
+}
+
+export interface DeviationProfile {
+  median_abs_pct: number;
+  best_month: DeviationMonth;
+  worst_month: DeviationMonth;
+  within_5pct: number;
+  /** Comparable months -- one fewer than the point count, see below. */
+  n: number;
+  /** Rebasing forces the first month to 0% deviation, so it is left out. */
+  excludes_rebase_anchor: boolean;
+}
+
 export interface ValidationSummary {
   n_months_compared: number;
   days_covered: number;
@@ -49,6 +66,7 @@ export interface ValidationSummary {
   mape_pct: number;
   pearson_correlation: number | null;
   directional_agreement: DirectionalAgreement | null;
+  deviation_profile: DeviationProfile | null;
   points: ValidationPoint[];
 }
 

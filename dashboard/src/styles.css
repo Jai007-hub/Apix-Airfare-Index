@@ -1605,3 +1605,39 @@ tbody tr:hover td {
   color: var(--ink-muted);
   margin-bottom: 0;
 }
+
+/* Facts behind the MAPE headline, as a label/value list rather than prose. */
+.corr-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 1px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--line-soft);
+}
+
+.corr-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 15px;
+  background: var(--surface-2);
+}
+
+.corr-list span {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.corr-list strong {
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
