@@ -90,16 +90,21 @@ The dashboard serves a different landing page depending on screen width:
 - **Laptop / desktop** opens the **analyst view** — the index trend, sector
   heatmap, lead-time curve and the CPI back-test, with the "explain this
   number" audit trail behind every index point.
-- **Phone** opens the **traveller view** at `/fares` — no charts, just the
-  numbers a passenger needs: the typical fare on a route, which advance-booking
-  window is cheapest and what that saves, a like-for-like airline comparison at
-  that window, and whether fares are rising or falling.
+- **Phone** shows **only the traveller view** — no sidebar, no charts, nothing
+  to navigate. Just what a passenger needs: a from/to picker over the tracked
+  sectors, the typical fare, which advance-booking window is cheapest and what
+  it saves, how often each window sells out, the fare's four-way split, a
+  like-for-like airline comparison, the cheapest time of year to fly, and the
+  cheapest sectors right now.
 
-Both are reachable from either device: `/fares` is a stable address, and the
-sidebar links across in both directions. The two views read the *same* cleaned
-fare table — the traveller view is a different question asked of the same data
-(`index/traveller.py`, served at `GET /api/v1/traveller/{route}`), not a
-separate dataset.
+The laptop can still reach the traveller view at `/fares` (it's in the
+sidebar). The phone deliberately cannot reach the analyst pages — if you want
+them there for a demo, delete the `if (isMobile)` early return in
+`dashboard/src/App.tsx`.
+
+Both read the *same* cleaned fare table — the traveller view is a different
+question asked of the same data (`index/traveller.py`, served at
+`GET /api/v1/traveller/{route}`), not a separate dataset.
 
 ### Opening it from your phone
 

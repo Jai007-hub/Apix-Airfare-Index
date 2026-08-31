@@ -15,7 +15,8 @@ downstream consumer can call them directly from a browser or server.
 | `GET /api/v1/heatmap` | `start`, `end`, `frequency` (weekly\|monthly) | `{periods, routes, matrix}` -- route x period avg fare |
 | `GET /api/v1/elasticity` | `start`, `end` | `{route_label: [{advance_window_days, avg_fare}]}` |
 | `GET /api/v1/validation` | -- | APIx vs CPI comparison: `{n_months_compared, mape_pct, pearson_correlation, points}` |
-| `GET /api/v1/traveller/{route_label}` | -- (route in path, e.g. `DEL-BOM`) | Consumer-facing route summary: `{typical_fare, cheapest_window, dearest_window, max_saving, max_saving_pct, windows, carriers, trend_pct, trend_direction}` |
+| `GET /api/v1/traveller` | -- | Every tracked sector at its best current fare, cheapest first: `[{route, origin, destination, best_fare}]` |
+| `GET /api/v1/traveller/{route_label}` | -- (route in path, e.g. `DEL-BOM`) | Consumer-facing route summary: `{typical_fare, cheapest_window, dearest_window, max_saving, max_saving_pct, windows, fare_breakdown, carriers, months, trend_pct, trend_direction}` |
 
 `/api/v1/index` and `/api/v1/validation` return `404` if the corresponding
 tables are empty -- run `python -m scripts.seed_demo_data` first.
@@ -36,6 +37,16 @@ disagree; it just aggregates differently:
 - **`carriers`** -- ranked *at the cheapest window only*. Comparing one
   airline's T+45 fare against another's T+1 would rank booking timing, not
   airlines, so the window is held constant.
+- **`fare_breakdown`** -- the cheapest fare split into base fare, taxes, UDF
+  and convenience fee. The four lines are forced to sum to the fare exactly:
+  rounding them independently can leave the split a rupee out, and a breakdown
+  that doesn't add up reads as a bug.
+- **`windows[].sold_out_pct`** -- share of searches at that window that came
+  back with no seats. Booking late costs more *and* more often leaves nothing
+  to buy; this is the half a fare table doesn't show.
+- **`months`** -- average fare per calendar month, pooled across every year on
+  record. Pooling (rather than keying on year-month) is what makes it a
+  seasonal statement: someone planning October wants every October we have.
 - **`trend_pct`** -- mean fare over the last 30 days against the 30 before it.
 
 All figures average the most recent 7 days of observations to smooth

@@ -1,7 +1,9 @@
+import pytest
+
 from datetime import date, timedelta
 
 from db.models import Carrier, CarrierType, CityPair, CleanFare
-from index.traveller import traveller_summary
+from index.traveller import route_leaderboard, traveller_summary
 
 TODAY = date(2026, 7, 31)
 
@@ -111,3 +113,83 @@ def test_route_that_went_stale_is_reported_not_priced_from_old_data(db_session):
 
     assert "error" in traveller_summary(db_session, "DEL-BOM")
     assert "error" not in traveller_summary(db_session, "BLR-HYD")
+
+
+@pytest.mark.parametrize("totals", [(4009, 4010, 4011), (4029, 4030, 4031)])
+def test_fare_breakdown_adds_up_to_the_fare_shown(db_session, totals):
+    """A split that doesn't reconcile with the headline number reads as a bug
+    to anyone who checks it, and rounding four lines independently can leave
+    it a rupee out.
+
+    Both parameter sets are chosen to actually break that way -- one rounds a
+    rupee short, the other a rupee over -- so this fails if the residual is
+    left unabsorbed. Spread over the recent week because the cleaned grain is
+    unique per (date, route, carrier, window).
+    """
+    route, indigo, _ = _seed(db_session)
+    for offset, total in enumerate(totals):
+        db_session.add(_fare(route, indigo, TODAY - timedelta(days=offset), 45, total))
+    db_session.commit()
+
+    s = traveller_summary(db_session, "DEL-BOM")
+
+    assert sum(s["fare_breakdown"].values()) == s["cheapest_window"]["fare"]
+
+
+def test_sold_out_rate_is_reported_per_booking_window(db_session):
+    """Leaving it late costs more *and* more often leaves nothing to buy --
+    the second half is the part a traveller can't see on a fare table."""
+    route, indigo, _ = _seed(db_session)
+    late = _fare(route, indigo, TODAY, 1, 12000)
+    late.n_obs, late.n_sold_out = 10, 4
+    early = _fare(route, indigo, TODAY, 45, 4000)
+    early.n_obs, early.n_sold_out = 10, 0
+    db_session.add_all([late, early])
+    db_session.commit()
+
+    s = traveller_summary(db_session, "DEL-BOM")
+    by_window = {w["window_days"]: w for w in s["windows"]}
+
+    assert by_window[1]["sold_out_pct"] == 40.0
+    assert by_window[45]["sold_out_pct"] == 0.0
+
+
+def test_seasonality_pools_the_same_month_across_years(db_session):
+    """Someone planning a January trip wants every January on record, not
+    just the most recent one."""
+    route, indigo, _ = _seed(db_session)
+    db_session.add(_fare(route, indigo, date(2025, 1, 15), 15, 4000))
+    db_session.add(_fare(route, indigo, date(2026, 1, 15), 15, 6000))
+    db_session.add(_fare(route, indigo, date(2025, 6, 15), 15, 9000))
+    db_session.add(_fare(route, indigo, TODAY, 15, 5000))
+    db_session.commit()
+
+    months = {m["name"]: m["fare"] for m in traveller_summary(db_session, "DEL-BOM")["months"]}
+
+    assert months["Jan"] == 5000  # both Januaries pooled, not just 2026
+    assert months["Jun"] == 9000
+
+
+def test_leaderboard_ranks_sectors_by_their_cheapest_window(db_session):
+    """A sector is listed at the price a traveller would actually pay, which
+    means its best window -- not the average across all of them."""
+    route, indigo, _ = _seed(db_session)
+    other = CityPair(origin="BLR", destination="HYD", label="BLR-HYD", dgca_weight=0.08)
+    db_session.add(other)
+    db_session.commit()
+
+    # DEL-BOM averages higher but bottoms out lower than BLR-HYD.
+    db_session.add_all(
+        [
+            _fare(route, indigo, TODAY, 1, 20000),
+            _fare(route, indigo, TODAY, 45, 3000),
+            _fare(other, indigo, TODAY, 1, 5000),
+            _fare(other, indigo, TODAY, 45, 4000),
+        ]
+    )
+    db_session.commit()
+
+    board = route_leaderboard(db_session)
+
+    assert [r["route"] for r in board] == ["DEL-BOM", "BLR-HYD"]
+    assert board[0]["best_fare"] == 3000

@@ -81,6 +81,31 @@ export interface ExplainResponse {
 export interface FareWindow {
   window_days: number;
   fare: number;
+  /** Cheapest and dearest single quote seen at this window. */
+  low: number;
+  high: number;
+  /** Share of searches at this window that came back with no seats. */
+  sold_out_pct: number;
+}
+
+export interface FareBreakdown {
+  base_fare: number;
+  taxes: number;
+  udf: number;
+  convenience_fee: number;
+}
+
+export interface MonthFare {
+  month: number;
+  name: string;
+  fare: number;
+}
+
+export interface LeaderboardRow {
+  route: string;
+  origin: string;
+  destination: string;
+  best_fare: number;
 }
 
 export interface CarrierFare {
@@ -101,7 +126,9 @@ export interface TravellerSummary {
   max_saving: number;
   max_saving_pct: number;
   windows: FareWindow[];
+  fare_breakdown: FareBreakdown;
   carriers: CarrierFare[];
+  months: MonthFare[];
   trend_pct: number | null;
   trend_direction: "up" | "down" | "flat";
 }
@@ -136,4 +163,5 @@ export const api = {
   getValidation: () => getJSON<ValidationSummary>("/api/v1/validation"),
   getTraveller: (routeLabel: string) =>
     getJSON<TravellerSummary>(`/api/v1/traveller/${encodeURIComponent(routeLabel)}`),
+  getRouteLeaderboard: () => getJSON<LeaderboardRow[]>("/api/v1/traveller"),
 };
