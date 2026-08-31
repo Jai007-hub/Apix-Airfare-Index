@@ -92,50 +92,52 @@ export default function TravellerView() {
 
   return (
     <div className="tv">
-      <header className="tv-head">
-        <h1>Know the fare before you book.</h1>
-        <p>Typical prices on India's busiest routes, and when they're cheapest.</p>
-      </header>
+      <div className="tv-top">
+        <header className="tv-head">
+          <h1>Know the fare before you book.</h1>
+          <p>Typical prices on India's busiest routes, and when they're cheapest.</p>
+        </header>
 
-      {/* Search card -- the familiar from/to shape, but every option in it is
-          a sector we hold real data for. */}
-      <div className="tv-search">
-        <label className="tv-field">
-          <span>From</span>
-          <select value={origin} onChange={(e) => pickOrigin(e.target.value)}>
-            {origins.map((c) => (
-              <option key={c} value={c}>
-                {cityName(c)}
-              </option>
-            ))}
-          </select>
-        </label>
+        {/* Search card -- the familiar from/to shape, but every option in it is
+            a sector we hold real data for. */}
+        <div className="tv-search">
+          <label className="tv-field">
+            <span>From</span>
+            <select value={origin} onChange={(e) => pickOrigin(e.target.value)}>
+              {origins.map((c) => (
+                <option key={c} value={c}>
+                  {cityName(c)}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        <span className="tv-plane" aria-hidden="true">
-          ✈
-        </span>
+          <span className="tv-plane" aria-hidden="true">
+            ✈
+          </span>
 
-        <label className="tv-field">
-          <span>To</span>
-          <select
-            value={destination}
-            onChange={(e) => setSelected(`${origin}-${e.target.value}`)}
-          >
-            {destinations.map((c) => (
-              <option key={c} value={c}>
-                {cityName(c)}
-              </option>
-            ))}
-          </select>
-        </label>
+          <label className="tv-field">
+            <span>To</span>
+            <select
+              value={destination}
+              onChange={(e) => setSelected(`${origin}-${e.target.value}`)}
+            >
+              {destinations.map((c) => (
+                <option key={c} value={c}>
+                  {cityName(c)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
 
       {error && <p className="tv-empty">{error}</p>}
       {!summary && !error && <p className="tv-empty">Loading fares…</p>}
 
       {summary && (
-        <>
-          <section className="tv-headline">
+        <div className="tv-grid">
+          <section className="tv-headline tv-a-headline">
             <div className="tv-headline-top">
               <span className="tv-route">
                 {cityName(summary.origin)} → {cityName(summary.destination)}
@@ -157,7 +159,7 @@ export default function TravellerView() {
             </span>
           </section>
 
-          <section className="tv-advice">
+          <section className="tv-advice tv-a-advice">
             <div className="tv-advice-row">
               <div>
                 <span className="tv-advice-kicker">Best time to book</span>
@@ -176,7 +178,7 @@ export default function TravellerView() {
             </p>
           </section>
 
-          <section className="tv-block">
+          <section className="tv-block tv-a-windows">
             <h2>Fare by how far ahead you book</h2>
             <ul className="tv-rows">
               {summary.windows.map((w) => {
@@ -209,7 +211,7 @@ export default function TravellerView() {
             )}
           </section>
 
-          <section className="tv-block">
+          <section className="tv-block tv-a-breakdown">
             <h2>What you're actually paying for</h2>
             <ul className="tv-rows tv-rows-plain">
               {breakdownRows.map(([label, value]) => (
@@ -232,7 +234,7 @@ export default function TravellerView() {
             </p>
           </section>
 
-          <section className="tv-block">
+          <section className="tv-block tv-a-airlines">
             <h2>Airlines, booking {summary.cheapest_window.window_days} days ahead</h2>
             <ul className="tv-rows tv-rows-plain">
               {summary.carriers.map((c, i) => (
@@ -251,7 +253,7 @@ export default function TravellerView() {
           </section>
 
           {cheapMonth && dearMonth && cheapMonth.name !== dearMonth.name && (
-            <section className="tv-block">
+            <section className="tv-block tv-a-season">
               <h2>Cheapest time of year to fly this route</h2>
               <div className="tv-stats">
                 <div className="tv-stat tv-stat-good">
@@ -284,13 +286,14 @@ export default function TravellerView() {
               </ul>
               <p className="tv-fine">
                 Average fare per calendar month across every year on record —
-                seasonality, not a forecast. Swipe for all twelve.
+                seasonality, not a forecast.{" "}
+                <span className="tv-only-narrow">Swipe for all twelve.</span>
               </p>
             </section>
           )}
 
           {board.length > 0 && (
-            <section className="tv-block">
+            <section className="tv-block tv-a-board">
               <h2>Cheapest sectors right now</h2>
               <ul className="tv-rows tv-rows-plain">
                 {board.slice(0, 5).map((r) => (
@@ -317,13 +320,13 @@ export default function TravellerView() {
             </section>
           )}
 
-          <p className="tv-note">
+          <p className="tv-note tv-a-note">
             Fares as of {prettyDate(summary.as_of)}, averaged over the previous
             week across the airlines and travel sites APIx tracks. These are
             typical prices for planning, not live quotes — and in this prototype
             they come from a calibrated synthetic feed, not live bookings.
           </p>
-        </>
+        </div>
       )}
     </div>
   );

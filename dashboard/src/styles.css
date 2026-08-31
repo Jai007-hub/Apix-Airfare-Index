@@ -1384,3 +1384,133 @@ tbody tr:hover td {
     font-size: 36px;
   }
 }
+
+/* -- wide screens ---------------------------------------------------------
+   On a phone this page is one column, in the order you'd read it. A laptop
+   has room to place the same blocks side by side, so /fares fills the screen
+   instead of running as a narrow ribbon down the middle.
+
+   Sections are auto-placed with column spans rather than named grid areas:
+   seasonality and the sector board are both conditional, and named areas
+   would leave holes in the layout whenever one is absent. */
+
+@media (min-width: 861px) {
+  .tv {
+    max-width: 1180px;
+  }
+
+  /* All twelve months fit here, so there is nothing to swipe. */
+  .tv-only-narrow {
+    display: none;
+  }
+
+  /* Intro on the left, search card on the right, baselines aligned. */
+  .tv-top {
+    display: grid;
+    grid-template-columns: 1fr minmax(320px, 420px);
+    gap: 28px;
+    align-items: end;
+    margin-bottom: 22px;
+  }
+
+  .tv-head h1 {
+    font-size: 30px;
+  }
+
+  .tv-head p,
+  .tv-search {
+    margin-bottom: 0;
+  }
+
+  .tv-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 16px;
+    /* Blocks differ in height; let each sit at the top of its row rather
+       than stretching to match its tallest neighbour. */
+    align-items: start;
+  }
+
+  /* Gap owns the spacing once the grid takes over. */
+  .tv-grid > * {
+    margin-bottom: 0;
+  }
+
+  .tv-a-headline {
+    grid-column: span 4;
+  }
+
+  .tv-a-advice {
+    grid-column: span 8;
+  }
+
+  .tv-a-windows,
+  .tv-a-breakdown {
+    grid-column: span 6;
+  }
+
+  /* Two-across leaves the airlines list orphaned on its own row with a hole
+     beside it, so at this width it takes the full row instead. */
+  .tv-a-airlines {
+    grid-column: span 12;
+  }
+
+  .tv-a-season,
+  .tv-a-board,
+  .tv-a-note {
+    grid-column: span 12;
+  }
+
+  .tv-note {
+    padding-top: 18px;
+  }
+
+  /* Twelve months have room to share the width evenly here, so they stop
+     being a scrolling strip and become a row. */
+  .tv-months {
+    overflow-x: visible;
+  }
+
+  .tv-month {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
+/* Full three-across only once the columns are wide enough to hold a fare
+   row without the label wrapping. */
+@media (min-width: 1120px) {
+  .tv-a-windows,
+  .tv-a-breakdown,
+  .tv-a-airlines {
+    grid-column: span 4;
+  }
+
+  .tv-a-board {
+    grid-column: span 7;
+  }
+
+  .tv-a-note {
+    grid-column: span 5;
+    border-top: none;
+    border-left: 1px solid var(--line-soft);
+    padding: 2px 0 0 20px;
+  }
+
+  /* Seasonality reads as a headline pair plus the monthly detail beside it. */
+  .tv-a-season {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 8px 20px;
+    align-items: start;
+  }
+
+  .tv-a-season h2,
+  .tv-a-season .tv-fine {
+    grid-column: 1 / -1;
+  }
+
+  .tv-a-season .tv-stats {
+    margin-bottom: 0;
+  }
+}
