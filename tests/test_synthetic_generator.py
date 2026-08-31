@@ -28,14 +28,40 @@ def test_records_have_consistent_schema():
         assert r.route_label in valid_routes
         assert r.advance_window_days in valid_windows
         assert r.data_source_type == "synthetic_fallback"
-        assert r.availability_status in ("available", "sold_out")
-        if r.availability_status == "sold_out":
+        assert r.availability_status in ("available", "sold_out", "cancelled")
+        if r.availability_status in ("sold_out", "cancelled"):
+            # No fare exists for a seat you cannot buy -- it must be absent
+            # rather than zero, which would drag the median down.
             assert r.total_fare is None
+            assert r.base_fare is None
         else:
             assert r.total_fare > 0
             assert r.base_fare > 0
             assert r.taxes >= 0
             assert round(r.base_fare + r.taxes + r.udf + r.convenience_fee, 2) == round(r.total_fare, 2)
+
+
+def test_both_unavailability_reasons_occur():
+    """Sold-out and cancelled are distinct states the cleaning pipeline counts
+    separately; cancelled previously never occurred, so that branch was dead."""
+    gen = SyntheticFareGenerator(seed=3)
+    records = gen.generate_range(date(2026, 1, 1), date(2026, 1, 31))
+    statuses = {r.availability_status for r in records}
+    assert "sold_out" in statuses
+    assert "cancelled" in statuses
+
+
+def test_fuel_surcharge_moves_fares_gently_and_cyclically():
+    """The fifth pricing driver in the problem statement. It should shift the
+    whole fare surface by a few percent, not by multiples like lead time."""
+    from scraper.synthetic import calibration
+
+    values = [
+        calibration.fuel_surcharge_multiplier(date(2025, m, 1)) for m in range(1, 13)
+    ]
+    assert all(0.95 <= v <= 1.05 for v in values), values
+    # It has to actually vary, otherwise it is not modelling anything.
+    assert max(values) - min(values) > 0.03
 
 
 def test_lead_time_curve_is_downward_sloping_on_average():

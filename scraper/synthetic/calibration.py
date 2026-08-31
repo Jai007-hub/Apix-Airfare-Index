@@ -6,6 +6,7 @@ sharply as departure approaches, spike further on weekends/festive season,
 and differ by carrier type and booking channel. Replace with fitted
 parameters once enough live-scraped history exists.
 """
+import math
 import zlib
 from datetime import date
 
@@ -75,6 +76,21 @@ def season_multiplier(departure_date: date) -> float:
     return 1.0
 
 
+def fuel_surcharge_multiplier(departure_date: date) -> float:
+    """Fuel-price-linked component, the fifth driver the problem statement
+    names alongside booking window, day-of-week, demand and season.
+
+    ATF prices move on a slow monthly cycle rather than day to day, so this is
+    a smooth wave over the calendar month index rather than anything noisy --
+    airlines reprice in response to sustained fuel moves, not daily ticks.
+    Amplitude is deliberately modest (+/-4%): fuel shifts the whole fare
+    surface gently, unlike the lead-time curve which moves fares by multiples.
+    """
+    months_elapsed = (departure_date.year - 2025) * 12 + (departure_date.month - 1)
+    # ~14-month cycle, so the demo window shows a full peak and trough.
+    return 1.0 + 0.04 * math.sin(2 * math.pi * months_elapsed / 14.0)
+
+
 def demand_shock(observation_date: date, route_label: str, rng) -> float:
     """A small route/day-specific random walk component so consecutive days
     aren't perfectly smooth (mirrors real yield-management noise).
@@ -101,6 +117,7 @@ def base_fare_for(route_label: str, carrier_type: str, advance_window_days: int,
         * lead_time_multiplier(advance_window_days, rng)
         * day_of_week_multiplier(departure_date)
         * season_multiplier(departure_date)
+        * fuel_surcharge_multiplier(departure_date)
         * demand_shock(observation_date, route_label, rng)
     )
     return round(fare, 2)
@@ -121,3 +138,11 @@ def convenience_fee_for(source_name: str) -> float:
 def sold_out_probability(advance_window_days: int) -> float:
     # Sold-out is more likely to be observed close to departure.
     return {1: 0.06, 7: 0.03, 15: 0.015, 30: 0.005, 45: 0.002}.get(advance_window_days, 0.01)
+
+
+def cancelled_probability(advance_window_days: int) -> float:
+    """Cancellations are rarer than sell-outs and, unlike them, cluster near
+    departure for operational reasons (weather, crew, tech) rather than demand.
+    The cleaning pipeline already treats cancelled separately from sold-out;
+    without this the cancelled branch would never execute on demo data."""
+    return {1: 0.010, 7: 0.004, 15: 0.002, 30: 0.001, 45: 0.001}.get(advance_window_days, 0.002)

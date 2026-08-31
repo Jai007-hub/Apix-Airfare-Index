@@ -70,7 +70,17 @@ class SyntheticFareGenerator:
             hours=self.rng.uniform(6, 22)
         )
 
-        if self.rng.random() < calibration.sold_out_probability(window):
+        # Unavailable for one of two distinct reasons -- sold out (demand) or
+        # cancelled (operational). Both carry no fare, but the pipeline counts
+        # and reports them separately.
+        draw = self.rng.random()
+        unavailable = None
+        if draw < calibration.sold_out_probability(window):
+            unavailable = "sold_out"
+        elif draw < calibration.sold_out_probability(window) + calibration.cancelled_probability(window):
+            unavailable = "cancelled"
+
+        if unavailable is not None:
             return FareRecord(
                 scraped_at=scraped_at,
                 observation_date=observation_date,
@@ -88,7 +98,7 @@ class SyntheticFareGenerator:
                 udf=None,
                 convenience_fee=None,
                 total_fare=None,
-                availability_status="sold_out",
+                availability_status=unavailable,
             )
 
         base_fare = calibration.base_fare_for(

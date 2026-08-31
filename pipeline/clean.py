@@ -40,7 +40,10 @@ def clean_day(session: Session, observation_date: date) -> int:
     groups: dict[tuple, list[RawObservation]] = {}
     sold_out_counts: dict[tuple, int] = {}
     for row in rows:
-        key = (row.route_id, row.carrier_id, row.advance_window_days)
+        # Fare class is part of the grain: Economy and Flexi Economy on the
+        # same flight are different products, so they must not be averaged
+        # into a single median.
+        key = (row.route_id, row.carrier_id, row.advance_window_days, row.fare_class)
         if row.availability_status in (AvailabilityStatus.SOLD_OUT, AvailabilityStatus.CANCELLED):
             sold_out_counts[key] = sold_out_counts.get(key, 0) + 1
             continue
@@ -48,9 +51,29 @@ def clean_day(session: Session, observation_date: date) -> int:
             continue
         groups.setdefault(key, []).append(row)
 
+    def _representative(rows_: list[RawObservation]) -> RawObservation:
+        """The quote sitting at the median total fare.
+
+        Every fare component is taken from this one real quote rather than
+        each being an independent median. Independent medians come from
+        different rows and therefore do not add up: on a group of seven
+        quotes with convenience fees [0, 149, 179, 199, 249, 250, 300], the
+        median fee is 199 while the median *total* belongs to the quote
+        charging 300 -- so base + taxes + UDF + fee missed the reported total
+        by 101 rupees. Sourcing the whole split from one observed quote makes
+        the components reconcile exactly and keeps every published figure a
+        price somebody was actually offered, which is how price statistics
+        are normally constructed.
+
+        With an even count this picks the lower of the two central quotes, so
+        the result is always a real observation rather than a blend of two.
+        """
+        ordered = sorted(rows_, key=lambda r: r.total_fare)
+        return ordered[(len(ordered) - 1) // 2]
+
     written = 0
     for key, group_rows in groups.items():
-        route_id, carrier_id, window = key
+        route_id, carrier_id, window, fare_class = key
         total_fares = [r.total_fare for r in group_rows]
         mask = _mad_inlier_mask(total_fares)
         inliers = [r for r, keep in zip(group_rows, mask) if keep]
@@ -58,14 +81,19 @@ def clean_day(session: Session, observation_date: date) -> int:
         if not inliers:
             continue
 
+        rep = _representative(inliers)
+
         clean = CleanFare(
             observation_date=observation_date,
             route_id=route_id,
             carrier_id=carrier_id,
             advance_window_days=window,
-            median_base_fare=statistics.median(r.base_fare for r in inliers if r.base_fare is not None),
-            median_taxes=statistics.median(r.taxes for r in inliers if r.taxes is not None),
-            median_total_fare=statistics.median(r.total_fare for r in inliers),
+            fare_class=fare_class,
+            median_base_fare=rep.base_fare if rep.base_fare is not None else 0.0,
+            median_taxes=rep.taxes if rep.taxes is not None else 0.0,
+            median_udf=rep.udf if rep.udf is not None else 0.0,
+            median_convenience_fee=rep.convenience_fee if rep.convenience_fee is not None else 0.0,
+            median_total_fare=rep.total_fare,
             min_total_fare=min(r.total_fare for r in inliers),
             max_total_fare=max(r.total_fare for r in inliers),
             n_obs=len(inliers),
@@ -81,13 +109,15 @@ def clean_day(session: Session, observation_date: date) -> int:
                     CleanFare.route_id == route_id,
                     CleanFare.carrier_id == carrier_id,
                     CleanFare.advance_window_days == window,
+                    CleanFare.fare_class == fare_class,
                 )
             )
             .one_or_none()
         )
         if existing is not None:
             for attr in (
-                "median_base_fare", "median_taxes", "median_total_fare",
+                "median_base_fare", "median_taxes", "median_udf",
+                "median_convenience_fee", "median_total_fare",
                 "min_total_fare", "max_total_fare", "n_obs", "n_excluded_outliers", "n_sold_out",
             ):
                 setattr(existing, attr, getattr(clean, attr))

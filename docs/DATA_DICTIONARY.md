@@ -31,9 +31,28 @@ name (e.g. `makemytrip`), source_type (`airline` \| `ota`), base_url
 | raw_payload | original scraped text, for audit |
 
 ## `clean_fares` (daily aggregate, output of `pipeline/clean.py`)
-One row per (observation_date, route, carrier, advance_window_days):
-median_base_fare, median_taxes, median_total_fare, min/max_total_fare,
-n_obs, n_excluded_outliers (MAD-based), n_sold_out.
+
+One row per (observation_date, route, carrier, advance_window_days,
+**fare_class**). Fare class is part of the grain, not a label: Economy and
+Flexi Economy on the same flight are different products, so collapsing them
+into a single median would invent a fare nobody can actually buy.
+
+| Column | Notes |
+|---|---|
+| median_base_fare | fare excluding all taxes and fees |
+| median_taxes | statutory taxes (GST etc.) |
+| median_udf | User Development Fee / PSF, airport-levied |
+| median_convenience_fee | OTA booking fee; 0 for direct-airline sources |
+| median_total_fare | the four components above, summed |
+| min_total_fare / max_total_fare | spread within the cell |
+| n_obs | quotes surviving outlier removal |
+| n_excluded_outliers | quotes dropped by the MAD filter |
+| n_sold_out | unavailable flights (sold out **or** cancelled), counted rather than priced |
+
+The full four-way split is carried through to this table deliberately. The
+API and the index both read from `clean_fares`, so anything dropped here is
+invisible to every downstream consumer no matter how carefully it was
+captured on the raw observation.
 
 ## `index_values`
 frequency (`daily`\|`weekly`\|`monthly`), period_date, apix_value (base

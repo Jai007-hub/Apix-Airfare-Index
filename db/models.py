@@ -145,6 +145,7 @@ class CleanFare(Base):
             "route_id",
             "carrier_id",
             "advance_window_days",
+            "fare_class",
             name="uq_clean_fare_identity",
         ),
     )
@@ -154,9 +155,18 @@ class CleanFare(Base):
     route_id = Column(Integer, ForeignKey("city_pairs.id"), nullable=False)
     carrier_id = Column(Integer, ForeignKey("carriers.id"), nullable=True)
     advance_window_days = Column(Integer, nullable=False)
+    # Part of the grain, not just a label: two fare classes on the same
+    # route/carrier/window are different products and must not be averaged
+    # into one another.
+    fare_class = Column(String(16), nullable=True)
 
+    # The full four-way split the problem statement asks for is carried all
+    # the way through to the cleaned table, not just captured on the raw
+    # observation -- the API and index both read from here.
     median_base_fare = Column(Float, nullable=False)
     median_taxes = Column(Float, nullable=False)
+    median_udf = Column(Float, nullable=False, default=0.0)
+    median_convenience_fee = Column(Float, nullable=False, default=0.0)
     median_total_fare = Column(Float, nullable=False)
     min_total_fare = Column(Float, nullable=False)
     max_total_fare = Column(Float, nullable=False)
