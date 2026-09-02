@@ -201,7 +201,7 @@ export default function TravellerView() {
                     <span className="tv-row-fill" style={{ width: `${fill}%` }} />
                     <span className="tv-row-label">
                       {windowLabel(w.window_days)}
-                      {isBest && <em className="tv-tag">cheapest</em>}
+                      {isBest && <em className="tv-tag">cheapest window</em>}
                       {w.sold_out_pct >= 1 && (
                         <em className="tv-tag tv-tag-warn">
                           {w.sold_out_pct.toFixed(0)}% sold out
@@ -213,12 +213,17 @@ export default function TravellerView() {
                 );
               })}
             </ul>
-            {lateWindow && lateWindow.sold_out_pct >= 1 && (
-              <p className="tv-fine">
-                Booking late doesn't just cost more — {lateWindow.sold_out_pct.toFixed(0)}%
-                of day-before searches on this route came back with no seats at all.
-              </p>
-            )}
+            <p className="tv-fine">
+              Each row averages every airline at that booking window.
+              {lateWindow && lateWindow.sold_out_pct >= 1 && (
+                <>
+                  {" "}
+                  Booking late doesn't just cost more —{" "}
+                  {lateWindow.sold_out_pct.toFixed(0)}% of day-before searches on this
+                  route came back with no seats at all.
+                </>
+              )}
+            </p>
           </section>
 
           <section className="tv-block tv-a-breakdown">
@@ -238,9 +243,11 @@ export default function TravellerView() {
               </li>
             </ul>
             <p className="tv-fine">
-              Split of the cheapest fare above. Taxes, the airport user
-              development fee and the booking site's convenience fee are what
-              separate the headline price from the one you pay.
+              Splits the {rupees(summary.cheapest_window.fare)} average at{" "}
+              {windowLabel(summary.cheapest_window.window_days)} — the cheapest row
+              above. Taxes, the airport user development fee and the booking site's
+              convenience fee are what separate the headline price from the one you
+              pay.
             </p>
           </section>
 
@@ -265,7 +272,7 @@ export default function TravellerView() {
                 <li key={c.code} className={i === 0 ? "tv-row tv-best" : "tv-row"}>
                   <span className="tv-row-label">
                     {c.name}
-                    {i === 0 && <em className="tv-tag">cheapest</em>}
+                    {i === 0 && <em className="tv-tag">lowest</em>}
                   </span>
                   <span className="tv-row-value">{rupees(c.fare)}</span>
                 </li>
@@ -275,6 +282,13 @@ export default function TravellerView() {
               Fares if you book {windowLabel(activeWindow)} — every airline at the
               same window, so it's like-for-like. Who is cheapest changes with the
               window, which is why it is picked rather than fixed.
+              {activeWindow === summary.cheapest_window.window_days && (
+                <>
+                  {" "}
+                  These five average {rupees(summary.cheapest_window.fare)}, which is
+                  the figure the other two panels use.
+                </>
+              )}
             </p>
           </section>
 
