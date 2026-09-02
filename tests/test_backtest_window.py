@@ -4,6 +4,7 @@ from db.models import IndexValue
 from validation.backtest import (
     deviation_profile,
     directional_agreement,
+    error_metrics,
     run_backtest,
 )
 
@@ -200,3 +201,47 @@ def test_within_5pct_includes_the_boundary_and_ignores_sign():
 def test_nothing_to_profile_once_the_anchor_is_removed():
     assert deviation_profile([_pt(2025, 1, 0.0)]) is None
     assert deviation_profile([]) is None
+
+
+# -- error metrics ------------------------------------------------------------
+# The regression measures a judge expects to see: MAE, MSE, RMSE and bias.
+
+
+def test_error_metrics_on_a_hand_computable_series():
+    apix = [102.0, 98.0, 105.0]
+    cpi = [100.0, 100.0, 100.0]
+    # errors +2, -2, +5 -> MAE 3, MSE 11, RMSE sqrt(11), bias +5/3
+    m = error_metrics(apix, cpi)
+
+    assert m["mae_index_points"] == 3.0
+    assert m["mse_index_points"] == 11.0
+    assert m["rmse_index_points"] == round(11 ** 0.5, 3)
+    assert m["mean_bias_index_points"] == 1.667
+
+
+def test_rmse_exceeds_mae_when_the_error_is_concentrated():
+    """RMSE >> MAE is the signal that a few bad months dominate, which is
+    exactly what it is reported for."""
+    spread = error_metrics([101.0, 101.0, 101.0, 101.0], [100.0] * 4)
+    spiky = error_metrics([100.0, 100.0, 100.0, 104.0], [100.0] * 4)
+
+    assert spread["mae_index_points"] == spiky["mae_index_points"] == 1.0
+    assert spread["rmse_index_points"] == 1.0
+    assert spiky["rmse_index_points"] > spread["rmse_index_points"]
+
+
+def test_bias_separates_wandering_from_consistently_off():
+    """MAE says how far off; bias says which side. Both series below are 2
+    points out on average, but one sits high throughout and the other
+    straddles."""
+    high = error_metrics([102.0, 102.0], [100.0, 100.0])
+    straddles = error_metrics([102.0, 98.0], [100.0, 100.0])
+
+    assert high["mae_index_points"] == straddles["mae_index_points"] == 2.0
+    assert high["mean_bias_index_points"] == 2.0
+    assert straddles["mean_bias_index_points"] == 0.0
+
+
+def test_mismatched_or_empty_series_report_nothing():
+    assert error_metrics([], []) is None
+    assert error_metrics([100.0, 101.0], [100.0]) is None

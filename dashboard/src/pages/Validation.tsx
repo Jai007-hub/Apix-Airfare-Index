@@ -167,6 +167,46 @@ export default function Validation() {
                   </p>
                 </>
               )}
+              {data.error_metrics && (
+                <>
+                  <h4 className="corr-sub">Standard error measures</h4>
+                  <ul className="corr-list">
+                    <li>
+                      <span>MAE</span>
+                      <strong>
+                        {data.error_metrics.mae_index_points.toFixed(2)} pts
+                      </strong>
+                    </li>
+                    <li>
+                      <span>RMSE</span>
+                      <strong>
+                        {data.error_metrics.rmse_index_points.toFixed(2)} pts
+                      </strong>
+                    </li>
+                    <li>
+                      <span>MSE</span>
+                      <strong>
+                        {data.error_metrics.mse_index_points.toFixed(1)}
+                      </strong>
+                    </li>
+                    <li>
+                      <span>Mean bias</span>
+                      <strong>
+                        {data.error_metrics.mean_bias_index_points >= 0 ? "+" : ""}
+                        {data.error_metrics.mean_bias_index_points.toFixed(2)} pts
+                      </strong>
+                    </li>
+                  </ul>
+                  <p className="corr-fine">
+                    In index points, the unit both series are expressed in. RMSE well
+                    above MAE means the error sits in a few bad months rather than
+                    spread evenly; bias near zero means the index wanders either side
+                    of CPI rather than running consistently high or low. Classification
+                    measures — accuracy, precision, F1 — do not apply: nothing here is
+                    being sorted into classes.
+                  </p>
+                </>
+              )}
             </div>
           )}
 

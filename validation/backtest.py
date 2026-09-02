@@ -31,6 +31,40 @@ _MONTH_NUMBER = {name: i for i, name in enumerate(month_name) if name}
 
 
 
+
+def error_metrics(apix: list[float], cpi: list[float]) -> dict | None:
+    """Standard regression error measures for APIx against CPI.
+
+    MAPE is the headline because it is scale-free -- a percentage reads the
+    same whether an index sits at 100 or at 130, and it is what price
+    statisticians quote. MAE and RMSE are in index points, which is the unit
+    the two series are actually expressed in.
+
+    RMSE is reported alongside MAE rather than instead of it: squaring makes
+    RMSE punish a few large misses far more than many small ones, so
+    RMSE >> MAE is itself the signal that the error is concentrated in a
+    handful of bad months rather than spread evenly.
+
+    Classification measures -- accuracy, precision, recall, F1 -- have no
+    meaning here. Nothing is being sorted into classes; this is a continuous
+    index compared against a continuous benchmark.
+    """
+    if not apix or len(apix) != len(cpi):
+        return None
+
+    errors = [a - c for a, c in zip(apix, cpi)]
+    n = len(errors)
+    mse = sum(e * e for e in errors) / n
+    return {
+        "mae_index_points": round(sum(abs(e) for e in errors) / n, 3),
+        "mse_index_points": round(mse, 3),
+        "rmse_index_points": round(mse ** 0.5, 3),
+        # Mean signed error: MAE says how far off, this says which side. A
+        # value near zero with a large MAE means the index wanders both ways
+        # rather than sitting consistently high or low.
+        "mean_bias_index_points": round(sum(errors) / n, 3),
+    }
+
 def deviation_profile(points: list[dict]) -> dict | None:
     """Where the MAPE headline comes from: the spread of monthly deviations
     behind it.
@@ -208,5 +242,8 @@ def run_backtest(session: Session, xlsx_path: str) -> dict:
             [r["apix_rebased"] for r in results], [r["cpi_index"] for r in results]
         ),
         "deviation_profile": deviation_profile(results),
+        "error_metrics": error_metrics(
+            [r["apix_rebased"] for r in results], [r["cpi_index"] for r in results]
+        ),
         "results": results,
     }

@@ -72,3 +72,42 @@ What this backtest *does* validate:
 Re-running with `--mode live` data (once spiders are hardened against
 current site markup, per `docs/ETHICAL_SCRAPING.md`) would turn this from a
 pipeline-correctness demonstration into a real accuracy validation.
+
+## Why these metrics, and not F1 / accuracy
+
+APIx is a **measurement system**, not a classifier or a forecaster. It
+produces a continuous index and compares it against a continuous benchmark
+(the CPI airfare sub-index). So the metric family is regression/agreement,
+not classification:
+
+| Reported | Why |
+|---|---|
+| **MAPE** | Headline. Scale-free, so it reads the same whether an index sits at 100 or 130 — the measure price statisticians quote. |
+| **MAE / RMSE / MSE** | Error in index points, the unit both series use. RMSE well above MAE says the error is concentrated in a few bad months rather than spread evenly. |
+| **Mean bias** | Signed error. Near zero with a large MAE means the index wanders either side of CPI rather than running consistently high or low. |
+| **Pearson r** | Co-movement of levels. Fragile on a short series, which is why it is never quoted alone. |
+| **Directional agreement** | How often both series moved the same way month to month. A blunt check no single noisy month can dominate. |
+| **Median / best / worst month, within-5% count** | The distribution behind the MAPE headline. |
+
+**Accuracy, precision, recall and F1 are not reported because they are not
+defined here.** They require predicted classes against true classes; nothing
+in this pipeline is sorted into classes. Quoting an F1 for a price index would
+signal a misunderstanding of the task, not rigour.
+
+The nearest thing to a classification problem in the pipeline is the
+availability flag (available / sold out / cancelled) and the outlier
+decision. Both could be scored with precision/recall — but only against
+labelled ground truth, which no public dataset provides for scraped fares, so
+neither is claimed.
+
+## What these numbers currently prove
+
+On synthetic fares generated independently of the CPI file, a near-zero
+correlation is the **expected** result of comparing two unrelated series, not
+a failure. What the back-test validates today is that the pipeline, the
+rebasing and the comparison arithmetic are correct end to end. Point the same
+pipeline at real scraped fares and every number on this page becomes a
+genuine accuracy measurement, with no code change.
+
+Tuning the fare generator until the correlation improved would make the
+validation circular and therefore worthless.

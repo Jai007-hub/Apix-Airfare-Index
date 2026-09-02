@@ -66,6 +66,14 @@ export interface DeviationProfile {
   excludes_rebase_anchor: boolean;
 }
 
+export interface ErrorMetrics {
+  mae_index_points: number;
+  mse_index_points: number;
+  rmse_index_points: number;
+  /** Mean signed error: which side of CPI the index sits on. */
+  mean_bias_index_points: number;
+}
+
 export interface ValidationSummary {
   n_months_compared: number;
   days_covered: number;
@@ -75,6 +83,7 @@ export interface ValidationSummary {
   pearson_correlation: number | null;
   directional_agreement: DirectionalAgreement | null;
   deviation_profile: DeviationProfile | null;
+  error_metrics: ErrorMetrics | null;
   points: ValidationPoint[];
 }
 

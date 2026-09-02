@@ -1775,3 +1775,12 @@ tbody tr:hover td {
   background-color: var(--surface-2);
   color: var(--ink);
 }
+
+.correlation-detail .corr-sub {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  font-weight: 600;
+  margin: 18px 0 9px;
+}
