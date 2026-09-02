@@ -16,6 +16,14 @@ export interface HeatmapResponse {
   periods: string[];
   routes: string[];
   matrix: Record<string, Record<string, number>>;
+  /** Which booking portal this matrix is for, or null for all of them. */
+  source: string | null;
+}
+
+export interface SourceInfo {
+  name: string;
+  source_type: "airline" | "ota";
+  base_url: string;
 }
 
 export interface ElasticityPoint {
@@ -182,10 +190,17 @@ export const api = {
   getRoutes: () => getJSON<RouteInfo[]>("/api/v1/routes"),
   explainIndex: (periodDate: string) =>
     getJSON<ExplainResponse>(`/api/v1/index/explain?period_date=${periodDate}`),
-  getHeatmap: (start: string, end: string, frequency: "daily" | "weekly" | "monthly" = "weekly") => {
+  getHeatmap: (
+    start: string,
+    end: string,
+    frequency: "daily" | "weekly" | "monthly" = "weekly",
+    source?: string,
+  ) => {
     const params = new URLSearchParams({ start, end, frequency });
+    if (source) params.set("source", source);
     return getJSON<HeatmapResponse>(`/api/v1/heatmap?${params.toString()}`);
   },
+  getSources: () => getJSON<SourceInfo[]>("/api/v1/sources"),
   getElasticity: (start: string, end: string) => {
     const params = new URLSearchParams({ start, end });
     return getJSON<ElasticityResponse>(`/api/v1/elasticity?${params.toString()}`);

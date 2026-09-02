@@ -13,6 +13,7 @@ from api.routers import (
     heatmap_router,
     index_router,
     routes_router,
+    sources_router,
     traveller_router,
     validation_router,
 )
@@ -52,4 +53,5 @@ app.include_router(fares_router.router)
 app.include_router(heatmap_router.router)
 app.include_router(elasticity_router.router)
 app.include_router(validation_router.router)
+app.include_router(sources_router.router)
 app.include_router(traveller_router.router)

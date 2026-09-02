@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { api, HeatmapResponse } from "../api/client";
+import { api, HeatmapResponse, SourceInfo } from "../api/client";
 import { chart, sequentialColor, sequentialTextColor } from "../chartTheme";
 
 type Frequency = "daily" | "weekly" | "monthly";
@@ -12,6 +12,33 @@ function isoDaysAgo(days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/* These are brand names, and title-casing the database key gets most of them
+   wrong -- "Indigo", "Spicejet", "Makemytrip". Spelled out here, with the
+   title-case fallback covering any portal added later. */
+const PORTAL_NAMES: Record<string, string> = {
+  indigo: "IndiGo",
+  air_india: "Air India",
+  air_india_express: "Air India Express",
+  akasa_air: "Akasa Air",
+  spicejet: "SpiceJet",
+  makemytrip: "MakeMyTrip",
+  yatra: "Yatra",
+  easemytrip: "EaseMyTrip",
+  cleartrip: "Cleartrip",
+  ixigo: "ixigo",
+  goibibo: "Goibibo",
+};
+
+function portalLabel(name: string): string {
+  return (
+    PORTAL_NAMES[name] ??
+    name
+      .split("_")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ")
+  );
+}
+
 export default function SectorHeatmap() {
   const [frequency, setFrequency] = useState<Frequency>("weekly");
   const [start, setStart] = useState(isoDaysAgo(90));
@@ -21,6 +48,10 @@ export default function SectorHeatmap() {
   // Bounds come from the index series itself, so the pickers can never offer a
   // date the database has no fares for.
   const [bounds, setBounds] = useState<{ min: string; max: string } | null>(null);
+  const [sources, setSources] = useState<SourceInfo[]>([]);
+  // One portal at a time: an airline site and an OTA are alternative
+  // answers to "whose price is this", not filters that stack.
+  const [source, setSource] = useState<string>("");
 
   useEffect(() => {
     api
@@ -34,15 +65,24 @@ export default function SectorHeatmap() {
         }
       })
       .catch(() => setBounds(null));
+    api.getSources().then(setSources).catch(() => setSources([]));
   }, []);
 
   useEffect(() => {
     setError(null);
     api
-      .getHeatmap(start, end, frequency)
+      .getHeatmap(start, end, frequency, source || undefined)
       .then(setData)
       .catch((e) => setError(String(e)));
-  }, [start, end, frequency]);
+  }, [start, end, frequency, source]);
+
+  const airlineSites = sources.filter((s) => s.source_type === "airline");
+  const otaPortals = sources.filter((s) => s.source_type === "ota");
+  // Selecting in one dropdown blanks the other, so the pair always reads as
+  // a single choice rather than two filters that might disagree.
+  const isAirline = airlineSites.some((s) => s.name === source);
+  const airlineValue = isAirline ? source : "";
+  const otaValue = isAirline ? "" : source;
 
   const { min, max } = useMemo(() => {
     if (!data) return { min: 0, max: 1 };
@@ -99,6 +139,44 @@ export default function SectorHeatmap() {
               data available {bounds.min} to {bounds.max}
             </span>
           )}
+        </div>
+
+        <div className="controls">
+          <label>
+            Airline site
+            <select
+              className="portal-select"
+              value={airlineValue}
+              onChange={(e) => setSource(e.target.value)}
+            >
+              <option value="">All portals</option>
+              {airlineSites.map((s) => (
+                <option key={s.name} value={s.name}>
+                  {portalLabel(s.name)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            OTA
+            <select
+              className="portal-select"
+              value={otaValue}
+              onChange={(e) => setSource(e.target.value)}
+            >
+              <option value="">All portals</option>
+              {otaPortals.map((s) => (
+                <option key={s.name} value={s.name}>
+                  {portalLabel(s.name)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <span className="hint-inline">
+            {source
+              ? `showing ${portalLabel(source)} only`
+              : "averaged across all 11 portals"}
+          </span>
         </div>
 
         {error && <div className="error">{error}</div>}

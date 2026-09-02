@@ -12,7 +12,8 @@ downstream consumer can call them directly from a browser or server.
 | `GET /api/v1/index` | `frequency` (daily\|weekly\|monthly, default daily), `start`, `end` | `[{period_date, apix_value}]` |
 | `GET /api/v1/routes` | -- | Basket: `[{label, origin, destination, dgca_weight}]` |
 | `GET /api/v1/fares` | `route`, `carrier`, `advance_window_days`, `start`, `end`, `limit` | Clean daily fare cells: origin, destination, carrier, advance-purchase window, fare class, and the full fare split (base / taxes / UDF / convenience fee / total) |
-| `GET /api/v1/heatmap` | `start`, `end`, `frequency` (weekly\|monthly) | `{periods, routes, matrix}` -- route x period avg fare |
+| `GET /api/v1/heatmap` | `start`, `end`, `frequency` (daily\|weekly\|monthly), `source` | `{periods, routes, matrix, source}` -- route x period avg fare, optionally for one booking portal |
+| `GET /api/v1/sources` | -- | The portals scraped: `[{name, source_type (airline\|ota), base_url}]` |
 | `GET /api/v1/elasticity` | `start`, `end` | `{route_label: [{advance_window_days, avg_fare}]}` |
 | `GET /api/v1/validation` | -- | APIx vs CPI comparison: `{n_months_compared, mape_pct, pearson_correlation, directional_agreement, deviation_profile, points}` |
 | `GET /api/v1/traveller` | -- | Every tracked sector at its best current fare, cheapest first: `[{route, origin, destination, best_fare}]` |
@@ -87,3 +88,23 @@ the closest month would present an arithmetic identity as a result, so `n` is
 one less than `n_months_compared`. Note that `mape_pct` itself is still
 computed over *all* months including that anchor, which flatters it slightly
 at small sample sizes.
+
+## `source` on `/api/v1/heatmap`
+
+Narrows the matrix to one booking portal by name (`indigo`, `makemytrip`, ...
+see `/api/v1/sources`). Omitted, it averages across all eleven.
+
+**This one reads the raw observations, not the cleaned table.** `clean_fares`
+has no source column by design: cleaning collapses every portal quoting the
+same flight into one cell, so a flight listed on six sites is not counted six
+times in the index. Filtering by portal therefore has to go back to
+`raw_observations`.
+
+Sold-out and cancelled rows are excluded, matching what cleaning does, which
+keeps the filtered view within ~3% of the unfiltered one rather than jumping
+when a filter is applied. It does skip the MAD outlier pass, which is why the
+two are close but not identical.
+
+An unknown portal name returns `404` rather than an empty matrix -- an empty
+grid reads as "no fares on these routes" when the real answer is "that portal
+is not tracked".
