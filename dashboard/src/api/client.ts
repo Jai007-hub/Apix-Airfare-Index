@@ -164,6 +164,9 @@ export interface CarrierFare {
 /** Consumer-facing summary of one route -- powers the phone view. */
 export interface TravellerSummary {
   route: string;
+  /** Which airline every figure describes; null means the all-airline mean. */
+  carrier_code: string | null;
+  carrier_name: string | null;
   origin: string;
   destination: string;
   as_of: string;
@@ -224,7 +227,11 @@ export const api = {
     const q = params.toString();
     return getJSON<ValidationSummary>(`/api/v1/validation${q ? `?${q}` : ""}`);
   },
-  getTraveller: (routeLabel: string) =>
-    getJSON<TravellerSummary>(`/api/v1/traveller/${encodeURIComponent(routeLabel)}`),
+  getTraveller: (routeLabel: string, carrier?: string) => {
+    const q = carrier ? `?carrier=${encodeURIComponent(carrier)}` : "";
+    return getJSON<TravellerSummary>(
+      `/api/v1/traveller/${encodeURIComponent(routeLabel)}${q}`,
+    );
+  },
   getRouteLeaderboard: () => getJSON<LeaderboardRow[]>("/api/v1/traveller"),
 };

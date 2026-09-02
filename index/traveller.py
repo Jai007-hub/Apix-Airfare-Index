@@ -29,17 +29,36 @@ def _latest_observation_date(session: Session) -> date | None:
     return session.query(func.max(CleanFare.observation_date)).scalar()
 
 
-def traveller_summary(session: Session, route_label: str) -> dict:
+def traveller_summary(
+    session: Session, route_label: str, carrier_code: str | None = None
+) -> dict:
+    """Everything the phone view needs for one route.
+
+    `carrier_code` narrows the fares, the booking-window table and the fare
+    split to a single airline. Without it every figure is the mean across
+    airlines -- which is a real number but nobody's actual price, so a reader
+    comparing it against the airline list below has no way to reconcile the
+    two. Naming an airline makes all three panels describe the same thing.
+
+    The airline ranking itself always covers every carrier, since its whole
+    job is comparison.
+    """
     route = session.query(CityPair).filter_by(label=route_label).one_or_none()
     if route is None:
         return {"error": f"Unknown route '{route_label}'."}
+
+    carrier = None
+    if carrier_code:
+        carrier = session.query(Carrier).filter_by(code=carrier_code).one_or_none()
+        if carrier is None:
+            return {"error": f"Unknown airline '{carrier_code}'."}
 
     latest = _latest_observation_date(session)
     if latest is None:
         return {"error": "No fare data available yet."}
 
     recent_start = latest - timedelta(days=RECENT_WINDOW_DAYS - 1)
-    recent = (
+    all_recent = (
         session.query(CleanFare)
         .filter(
             CleanFare.route_id == route.id,
@@ -48,8 +67,14 @@ def traveller_summary(session: Session, route_label: str) -> dict:
         )
         .all()
     )
-    if not recent:
+    if not all_recent:
         return {"error": f"No recent fares for {route_label}."}
+
+    # The ranking compares carriers, so it always sees all of them; everything
+    # else describes whichever selection the caller asked for.
+    recent = [r for r in all_recent if r.carrier_id == carrier.id] if carrier else all_recent
+    if not recent:
+        return {"error": f"No recent {carrier_code} fares for {route_label}."}
 
     # Fare by booking window -- the "when should I book" answer. Sold-out rate
     # rides along because it is the other half of the same decision: leaving it
@@ -57,6 +82,10 @@ def traveller_summary(session: Session, route_label: str) -> dict:
     by_window: dict[int, list[CleanFare]] = {}
     for row in recent:
         by_window.setdefault(row.advance_window_days, []).append(row)
+
+    by_window_all: dict[int, list[CleanFare]] = {}
+    for row in all_recent:
+        by_window_all.setdefault(row.advance_window_days, []).append(row)
 
     windows = []
     for w, rows in sorted(by_window.items()):
@@ -116,7 +145,7 @@ def traveller_summary(session: Session, route_label: str) -> dict:
             key=lambda c: c["fare"],
         )
 
-    carriers_by_window = {w: _rank_carriers(rows) for w, rows in sorted(by_window.items())}
+    carriers_by_window = {w: _rank_carriers(rows) for w, rows in sorted(by_window_all.items())}
     carriers = carriers_by_window[cheapest["window_days"]]
 
     # Direction of travel: this month against the one before.
@@ -127,6 +156,7 @@ def traveller_summary(session: Session, route_label: str) -> dict:
                 CleanFare.route_id == route.id,
                 CleanFare.observation_date >= start,
                 CleanFare.observation_date <= end,
+                *( [CleanFare.carrier_id == carrier.id] if carrier else [] ),
             )
             .scalar()
         )
@@ -144,6 +174,10 @@ def traveller_summary(session: Session, route_label: str) -> dict:
 
     return {
         "route": route.label,
+        # Which airline every figure below describes; null means the mean
+        # across all of them.
+        "carrier_code": carrier.code if carrier else None,
+        "carrier_name": carrier.name if carrier else None,
         "origin": route.origin,
         "destination": route.destination,
         "as_of": latest,

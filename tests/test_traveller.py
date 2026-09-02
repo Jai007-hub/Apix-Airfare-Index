@@ -200,3 +200,65 @@ def test_leaderboard_ranks_sectors_by_their_cheapest_window(db_session):
 
     assert [r["route"] for r in board] == ["DEL-BOM", "BLR-HYD"]
     assert board[0]["best_fare"] == 3000
+
+
+def test_selecting_an_airline_makes_every_figure_that_airline_s(db_session):
+    """The complaint this answers: with no airline chosen, the window table
+    and the fare split are means across carriers, so they match nobody's
+    actual price and cannot be reconciled against the airline list below."""
+    route, indigo, air_india = _seed(db_session)
+    db_session.add_all(
+        [
+            _fare(route, indigo, TODAY, 45, 4000),
+            _fare(route, air_india, TODAY, 45, 6000),
+        ]
+    )
+    db_session.commit()
+
+    blended = traveller_summary(db_session, "DEL-BOM")
+    picked = traveller_summary(db_session, "DEL-BOM", "6E")
+
+    # Unfiltered: the mean, which is neither airline's price.
+    assert blended["cheapest_window"]["fare"] == 5000
+    assert blended["carrier_code"] is None
+
+    # Filtered: the window table, the split and the ranking all agree.
+    assert picked["carrier_code"] == "6E"
+    assert picked["cheapest_window"]["fare"] == 4000
+    assert sum(picked["fare_breakdown"].values()) == 4000
+    assert next(c["fare"] for c in picked["carriers_by_window"][45] if c["code"] == "6E") == 4000
+
+
+def test_the_airline_ranking_still_shows_every_carrier_when_one_is_selected(db_session):
+    """Narrowing the page must not narrow the comparison -- the ranking exists
+    to show what the alternatives cost."""
+    route, indigo, air_india = _seed(db_session)
+    db_session.add_all(
+        [
+            _fare(route, indigo, TODAY, 45, 4000),
+            _fare(route, air_india, TODAY, 45, 6000),
+        ]
+    )
+    db_session.commit()
+
+    picked = traveller_summary(db_session, "DEL-BOM", "6E")
+
+    assert [c["code"] for c in picked["carriers_by_window"][45]] == ["6E", "AI"]
+
+
+def test_unknown_airline_is_reported_not_ignored(db_session):
+    """Silently falling back to the blended view would show numbers the reader
+    believes are one airline's when they are everyone's."""
+    route, indigo, _ = _seed(db_session)
+    db_session.add(_fare(route, indigo, TODAY, 45, 4000))
+    db_session.commit()
+
+    assert "error" in traveller_summary(db_session, "DEL-BOM", "ZZ")
+
+
+def test_an_airline_that_does_not_fly_the_route_is_reported(db_session):
+    route, indigo, air_india = _seed(db_session)
+    db_session.add(_fare(route, indigo, TODAY, 45, 4000))
+    db_session.commit()
+
+    assert "error" in traveller_summary(db_session, "DEL-BOM", "AI")

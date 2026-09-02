@@ -36,6 +36,8 @@ export default function TravellerView() {
   // Which booking window the airline table compares at. Defaults to the
   // cheapest one, then follows whatever the reader picks.
   const [carrierWindow, setCarrierWindow] = useState<number | null>(null);
+  // Which airline the whole page describes. "" is the all-airline mean.
+  const [airline, setAirline] = useState("");
 
   useEffect(() => {
     api.getRoutes().then(setRoutes).catch(() => setRoutes([]));
@@ -47,13 +49,13 @@ export default function TravellerView() {
     setSummary(null);
     setError(null);
     api
-      .getTraveller(selected)
+      .getTraveller(selected, airline || undefined)
       .then((s) => !cancelled && setSummary(s))
       .catch(() => !cancelled && setError("Could not load fares for this route."));
     return () => {
       cancelled = true;
     };
-  }, [selected]);
+  }, [selected, airline]);
 
   useEffect(() => {
     if (summary) setCarrierWindow(summary.cheapest_window.window_days);
@@ -142,6 +144,29 @@ export default function TravellerView() {
         </div>
       </div>
 
+      <div className="tv-airline-bar">
+        <label>
+          <span>Airline</span>
+          <select
+            className="tv-window-select"
+            value={airline}
+            onChange={(e) => setAirline(e.target.value)}
+          >
+            <option value="">All airlines (average)</option>
+            {(summary?.carriers ?? []).map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <span className="tv-airline-note">
+          {summary?.carrier_name
+            ? `Every fare below is ${summary.carrier_name}'s.`
+            : "Fares below average all airlines — no single airline charges exactly this."}
+        </span>
+      </div>
+
       {error && <p className="tv-empty">{error}</p>}
       {!summary && !error && <p className="tv-empty">Loading fares…</p>}
 
@@ -214,7 +239,9 @@ export default function TravellerView() {
               })}
             </ul>
             <p className="tv-fine">
-              Each row averages every airline at that booking window.
+              {summary.carrier_name
+                ? `${summary.carrier_name} fares at each booking window.`
+                : "Each row averages every airline at that booking window."}
               {lateWindow && lateWindow.sold_out_pct >= 1 && (
                 <>
                   {" "}
@@ -243,7 +270,8 @@ export default function TravellerView() {
               </li>
             </ul>
             <p className="tv-fine">
-              Splits the {rupees(summary.cheapest_window.fare)} average at{" "}
+              Splits the {rupees(summary.cheapest_window.fare)}{" "}
+              {summary.carrier_name ? `${summary.carrier_name} fare` : "average"} at{" "}
               {windowLabel(summary.cheapest_window.window_days)} — the cheapest row
               above. Taxes, the airport user development fee and the booking site's
               convenience fee are what separate the headline price from the one you
@@ -269,10 +297,20 @@ export default function TravellerView() {
             </div>
             <ul className="tv-rows tv-rows-plain">
               {activeCarriers.map((c, i) => (
-                <li key={c.code} className={i === 0 ? "tv-row tv-best" : "tv-row"}>
+                <li
+                  key={c.code}
+                  className={
+                    c.code === summary.carrier_code || (!summary.carrier_code && i === 0)
+                      ? "tv-row tv-best"
+                      : "tv-row"
+                  }
+                >
                   <span className="tv-row-label">
                     {c.name}
                     {i === 0 && <em className="tv-tag">lowest</em>}
+                    {c.code === summary.carrier_code && (
+                      <em className="tv-tag">showing</em>
+                    )}
                   </span>
                   <span className="tv-row-value">{rupees(c.fare)}</span>
                 </li>
@@ -285,8 +323,9 @@ export default function TravellerView() {
               {activeWindow === summary.cheapest_window.window_days && (
                 <>
                   {" "}
-                  These five average {rupees(summary.cheapest_window.fare)}, which is
-                  the figure the other two panels use.
+                  {summary.carrier_code
+                    ? `${summary.carrier_name} shows ${rupees(summary.cheapest_window.fare)} here — the same figure the other two panels use.`
+                    : `These five average ${rupees(summary.cheapest_window.fare)}, which is the figure the other two panels use.`}
                 </>
               )}
             </p>

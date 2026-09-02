@@ -1848,3 +1848,36 @@ select {
   background-image: linear-gradient(45deg, transparent 50%, var(--accent-hi) 50%),
     linear-gradient(135deg, var(--accent-hi) 50%, transparent 50%);
 }
+
+/* Airline selector -- it governs the whole page, so it sits above the panels
+   rather than inside any one of them. */
+.tv-airline-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.tv-airline-bar label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.tv-airline-bar label > span {
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.tv-airline-bar .tv-window-select {
+  min-width: 190px;
+  font-weight: 550;
+}
+
+.tv-airline-note {
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}

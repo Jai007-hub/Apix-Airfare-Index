@@ -17,7 +17,7 @@ downstream consumer can call them directly from a browser or server.
 | `GET /api/v1/elasticity` | `start`, `end` | `{route_label: [{advance_window_days, avg_fare}]}` |
 | `GET /api/v1/validation` | `start`, `end` | APIx vs CPI comparison: `{n_months_compared, mape_pct, pearson_correlation, directional_agreement, deviation_profile, points}` |
 | `GET /api/v1/traveller` | -- | Every tracked sector at its best current fare, cheapest first: `[{route, origin, destination, best_fare}]` |
-| `GET /api/v1/traveller/{route_label}` | -- (route in path, e.g. `DEL-BOM`) | Consumer-facing route summary: `{typical_fare, cheapest_window, dearest_window, max_saving, max_saving_pct, windows, fare_breakdown, carriers, months, trend_pct, trend_direction}` |
+| `GET /api/v1/traveller/{route_label}` | `carrier` (optional airline code) | Consumer-facing route summary: `{typical_fare, cheapest_window, dearest_window, max_saving, max_saving_pct, windows, fare_breakdown, carriers, months, trend_pct, trend_direction}` |
 
 `/api/v1/index` and `/api/v1/validation` return `404` if the corresponding
 tables are empty -- run `python -m scripts.seed_demo_data` first.
@@ -128,3 +128,23 @@ omitting rather than faking them: `pearson_correlation` and
 `directional_agreement` are `null` below two points. At exactly two points a
 correlation is arithmetically +/-1 and carries no information, which the
 dashboard warns about rather than the API suppressing.
+
+## `carrier` on `/api/v1/traveller/{route}`
+
+Narrows `windows`, `fare_breakdown`, `cheapest_window`, `max_saving` and
+`trend_pct` to one airline (`6E`, `AI`, `SG`, `QP`, `IX`).
+
+Without it every one of those is a **mean across airlines** -- a real number,
+but nobody's actual price. A reader comparing the window table against the
+airline ranking below it then sees two figures that cannot be reconciled: on
+DEL-BOM the T+45 row reads 4,624 while SpiceJet, the cheapest airline at that
+window, reads 4,289. Naming an airline makes all three agree.
+
+`carriers_by_window` is deliberately **not** narrowed -- its whole job is to
+show what the alternatives cost, so it always covers every airline. The
+response echoes `carrier_code` / `carrier_name` so a caller can label its
+figures correctly, and `null` there means the blended view.
+
+An unknown airline, or one that does not fly the route, returns `404` rather
+than silently falling back to the blended numbers -- which the reader would
+then believe were that airline's.
