@@ -1796,3 +1796,33 @@ tbody tr:hover td {
 .note-warn > span:first-child {
   color: var(--bad);
 }
+
+/* -- native dropdown lists ------------------------------------------------
+   The popup a <select> opens is drawn by the OS, not the page, so it ignores
+   the dark surface behind it and renders white unless told otherwise.
+
+   Two things are needed together. `color-scheme: dark` asks the platform for
+   the dark variant of the control -- that alone fixes Safari and recent
+   Chrome. Colouring the options covers the browsers that still paint the
+   list from the page's own values. The date inputs get it too, since the
+   calendar popover has the same problem. */
+.tv-field select,
+.tv-window-select,
+.portal-select,
+.controls input[type="date"],
+select {
+  color-scheme: dark;
+}
+
+.tv-field select option {
+  background-color: var(--surface-2);
+  color: var(--ink);
+}
+
+/* The picked row in an open list, where the browser lets us style it. */
+.tv-field select option:checked,
+.tv-window-select option:checked,
+.portal-select option:checked {
+  background-color: var(--surface-3);
+  color: var(--ink);
+}
