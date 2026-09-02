@@ -66,7 +66,10 @@ export default function Validation() {
               <div className="value">
                 {data.days_covered.toLocaleString("en-IN")}
                 {data.days_covered >= 30 && (
-                  <span className="req-met" title="Problem statement requires at least 30 days">
+                  <span
+                    className="req-met"
+                    title="The brief requires at least 30 days of back-tested results"
+                  >
                     ✓ ≥30 required
                   </span>
                 )}
@@ -324,6 +327,22 @@ export default function Validation() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          <div className="note">
+            <span aria-hidden="true">ⓘ</span>
+            <span>
+              <strong>On the benchmark.</strong> The brief asks for back-testing against
+              publicly available <strong>DGCA monthly average-fare</strong> data. DGCA
+              publishes domestic traffic statistics, but no machine-readable monthly
+              average-fare series per city-pair that we could obtain — so this back-test
+              uses MoSPI's official CPI airfare sub-index instead
+              (<code>cpi_1054.xlsx</code>, All-India, base 2024). That is arguably the
+              more relevant comparator anyway: the CPI airfare sub-index is precisely the
+              series APIx is meant to augment. The comparison code takes any monthly
+              benchmark series, so a DGCA table can be swapped in without touching the
+              index or the pipeline.
+            </span>
           </div>
 
           <div className="note">
