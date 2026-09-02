@@ -334,9 +334,9 @@ export default function TravellerView() {
 
           {board.length > 0 && (
             <section className="tv-block tv-a-board">
-              <h2>Cheapest sectors right now</h2>
+              <h2>All {board.length} routes, cheapest first</h2>
               <ul className="tv-rows tv-rows-plain">
-                {board.slice(0, 5).map((r) => (
+                {board.map((r) => (
                   <li key={r.route}>
                     <button
                       type="button"
@@ -354,8 +354,9 @@ export default function TravellerView() {
                 ))}
               </ul>
               <p className="tv-fine">
-                Best fare on each sector at its cheapest booking window. Tap to
-                switch.
+                Every route APIx tracks, at its own cheapest booking window. Tap any
+                one to switch to it — quicker than working back through the from/to
+                pickers, which only list cities that a tracked route departs from.
               </p>
             </section>
           )}
