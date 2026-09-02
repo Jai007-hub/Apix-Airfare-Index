@@ -33,6 +33,9 @@ export default function TravellerView() {
   const [selected, setSelected] = useState("DEL-BOM");
   const [summary, setSummary] = useState<TravellerSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Which booking window the airline table compares at. Defaults to the
+  // cheapest one, then follows whatever the reader picks.
+  const [carrierWindow, setCarrierWindow] = useState<number | null>(null);
 
   useEffect(() => {
     api.getRoutes().then(setRoutes).catch(() => setRoutes([]));
@@ -51,6 +54,10 @@ export default function TravellerView() {
       cancelled = true;
     };
   }, [selected]);
+
+  useEffect(() => {
+    if (summary) setCarrierWindow(summary.cheapest_window.window_days);
+  }, [summary]);
 
   const [origin, destination] = selected.split("-");
 
@@ -71,6 +78,9 @@ export default function TravellerView() {
     const first = routes.find((r) => r.origin === next);
     if (first) setSelected(`${next}-${first.destination}`);
   };
+
+  const activeWindow = carrierWindow ?? summary?.cheapest_window.window_days ?? 0;
+  const activeCarriers = summary?.carriers_by_window[String(activeWindow)] ?? [];
 
   const cheapMonth = summary?.months.length
     ? summary.months.reduce((a, b) => (b.fare < a.fare ? b : a))
@@ -235,9 +245,23 @@ export default function TravellerView() {
           </section>
 
           <section className="tv-block tv-a-airlines">
-            <h2>Airlines, booking {summary.cheapest_window.window_days} days ahead</h2>
+            <div className="tv-block-head">
+              <h2>Airlines by booking window</h2>
+              <select
+                className="tv-window-select"
+                value={activeWindow}
+                onChange={(e) => setCarrierWindow(Number(e.target.value))}
+                aria-label="Booking window to compare airlines at"
+              >
+                {summary.windows.map((w) => (
+                  <option key={w.window_days} value={w.window_days}>
+                    T+{w.window_days}
+                  </option>
+                ))}
+              </select>
+            </div>
             <ul className="tv-rows tv-rows-plain">
-              {summary.carriers.map((c, i) => (
+              {activeCarriers.map((c, i) => (
                 <li key={c.code} className={i === 0 ? "tv-row tv-best" : "tv-row"}>
                   <span className="tv-row-label">
                     {c.name}
@@ -248,7 +272,9 @@ export default function TravellerView() {
               ))}
             </ul>
             <p className="tv-fine">
-              All compared at the same booking window, so it's like-for-like.
+              Fares if you book {windowLabel(activeWindow)} — every airline at the
+              same window, so it's like-for-like. Who is cheapest changes with the
+              window, which is why it is picked rather than fixed.
             </p>
           </section>
 

@@ -34,9 +34,13 @@ disagree; it just aggregates differently:
   single 1-day-out spike can't set the headline number.
 - **`cheapest_window` / `max_saving`** -- the lead-time curve reduced to the
   one actionable fact, "book this far ahead and save this much".
-- **`carriers`** -- ranked *at the cheapest window only*. Comparing one
+- **`carriers_by_window`** -- the airline ranking at every booking window,
+  keyed by window days. Each list holds its window constant: comparing one
   airline's T+45 fare against another's T+1 would rank booking timing, not
-  airlines, so the window is held constant.
+  airlines. Who is cheapest genuinely changes with the window, which is why
+  all five are returned rather than one.
+- **`carriers`** -- shorthand for `carriers_by_window` at the cheapest
+  window, so a caller wanting just the headline answer needs no lookup.
 - **`fare_breakdown`** -- the cheapest fare split into base fare, taxes, UDF
   and convenience fee. The four lines are forced to sum to the fare exactly:
   rounding them independently can leave the split a rupee out, and a breakdown

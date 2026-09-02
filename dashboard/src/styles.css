@@ -1641,3 +1641,56 @@ tbody tr:hover td {
   font-variant-numeric: tabular-nums;
   color: var(--ink);
 }
+
+/* Section heading with a control on the right -- the airline table's booking
+   window is chosen rather than fixed, since who is cheapest changes with it. */
+.tv-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.tv-block-head h2 {
+  margin: 0;
+}
+
+.tv-window-select {
+  flex-shrink: 0;
+  height: 32px;
+  padding: 0 30px 0 11px;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  background-color: var(--surface-3);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  appearance: none;
+  /* Chevron drawn from two gradients, so no image request is needed. */
+  background-image: linear-gradient(45deg, transparent 50%, var(--accent-hi) 50%),
+    linear-gradient(135deg, var(--accent-hi) 50%, transparent 50%);
+  background-position: calc(100% - 16px) 14px, calc(100% - 11px) 14px;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.tv-window-select:hover {
+  border-color: var(--accent-line);
+  background-color: var(--surface-2);
+}
+
+.tv-window-select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* The native dropdown list paints with the OS palette unless the options are
+   coloured too, which on a dark page reads as a white flash. */
+.tv-window-select option {
+  background-color: var(--surface-2);
+  color: var(--ink);
+}

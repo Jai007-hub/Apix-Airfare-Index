@@ -75,6 +75,13 @@ def test_carriers_are_compared_at_one_booking_window(db_session):
     assert [c["code"] for c in s["carriers"]] == ["6E", "AI"]
     assert s["carriers"][0]["fare"] == 4000
 
+    # Each window ranks independently, so the reader can switch between them
+    # without ever seeing carriers from two windows mixed together.
+    assert [c["code"] for c in s["carriers_by_window"][45]] == ["6E", "AI"]
+    assert [c["code"] for c in s["carriers_by_window"][1]] == ["AI", "6E"]
+    # The default list is just the cheapest window's, not a separate answer.
+    assert s["carriers"] == s["carriers_by_window"][45]
+
 
 def test_trend_compares_this_month_against_the_previous_one(db_session):
     route, indigo, _ = _seed(db_session)

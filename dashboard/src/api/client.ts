@@ -155,6 +155,9 @@ export interface TravellerSummary {
   windows: FareWindow[];
   fare_breakdown: FareBreakdown;
   carriers: CarrierFare[];
+  /** Airline ranking at every booking window, keyed by window days as a
+   *  string (JSON object keys). Each list holds its window constant. */
+  carriers_by_window: Record<string, CarrierFare[]>;
   months: MonthFare[];
   trend_pct: number | null;
   trend_direction: "up" | "down" | "flat";

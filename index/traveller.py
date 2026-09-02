@@ -93,25 +93,31 @@ def traveller_summary(session: Session, route_label: str) -> dict:
     # bug to anyone who checks, so the largest line absorbs the residual.
     breakdown["base_fare"] += cheapest["fare"] - sum(breakdown.values())
 
-    # Cheapest airline on this route, at the cheapest booking window -- the
-    # comparison only means something if the booking window is held constant.
+    # Airline ranking per booking window. Ranking across mixed windows would
+    # compare booking timing rather than carriers, so each list holds its
+    # window constant and the caller picks which window to look at.
     carrier_names = {c.id: (c.code, c.name) for c in session.query(Carrier).all()}
-    by_carrier: dict[int, list[float]] = {}
-    for row in at_cheapest:
-        if row.carrier_id:
-            by_carrier.setdefault(row.carrier_id, []).append(row.median_total_fare)
-    carriers = sorted(
-        (
-            {
-                "code": carrier_names[cid][0],
-                "name": carrier_names[cid][1],
-                "fare": round(statistics.mean(v)),
-            }
-            for cid, v in by_carrier.items()
-            if cid in carrier_names
-        ),
-        key=lambda c: c["fare"],
-    )
+
+    def _rank_carriers(rows_: list[CleanFare]) -> list[dict]:
+        by_carrier: dict[int, list[float]] = {}
+        for row in rows_:
+            if row.carrier_id:
+                by_carrier.setdefault(row.carrier_id, []).append(row.median_total_fare)
+        return sorted(
+            (
+                {
+                    "code": carrier_names[cid][0],
+                    "name": carrier_names[cid][1],
+                    "fare": round(statistics.mean(v)),
+                }
+                for cid, v in by_carrier.items()
+                if cid in carrier_names
+            ),
+            key=lambda c: c["fare"],
+        )
+
+    carriers_by_window = {w: _rank_carriers(rows) for w, rows in sorted(by_window.items())}
+    carriers = carriers_by_window[cheapest["window_days"]]
 
     # Direction of travel: this month against the one before.
     def _mean_over(start: date, end: date) -> float | None:
@@ -150,6 +156,7 @@ def traveller_summary(session: Session, route_label: str) -> dict:
         "windows": windows,
         "fare_breakdown": breakdown,
         "carriers": carriers,
+        "carriers_by_window": carriers_by_window,
         "months": monthly_seasonality(session, route.id),
         "trend_pct": trend_pct,
         "trend_direction": ("up" if trend_pct > 0 else "down") if trend_pct else "flat",
