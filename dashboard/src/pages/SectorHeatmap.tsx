@@ -14,7 +14,11 @@ function isoDaysAgo(days: number): string {
 
 /* These are brand names, and title-casing the database key gets most of them
    wrong -- "Indigo", "Spicejet", "Makemytrip". Spelled out here, with the
-   title-case fallback covering any portal added later. */
+   title-case fallback covering any portal added later.
+
+   Key order is the display order for the dropdowns: airlines by size, then
+   the OTAs. Alphabetical would open the airline list on "Air India" rather
+   than the carrier that actually dominates the basket. */
 const PORTAL_NAMES: Record<string, string> = {
   indigo: "IndiGo",
   air_india: "Air India",
@@ -25,9 +29,11 @@ const PORTAL_NAMES: Record<string, string> = {
   yatra: "Yatra",
   easemytrip: "EaseMyTrip",
   cleartrip: "Cleartrip",
-  ixigo: "ixigo",
+  ixigo: "Ixigo",
   goibibo: "Goibibo",
 };
+
+const PORTAL_ORDER = Object.keys(PORTAL_NAMES);
 
 function portalLabel(name: string): string {
   return (
@@ -37,6 +43,12 @@ function portalLabel(name: string): string {
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(" ")
   );
+}
+
+/** Anything the map doesn't know sorts to the end rather than to the front. */
+function portalRank(name: string): number {
+  const i = PORTAL_ORDER.indexOf(name);
+  return i === -1 ? PORTAL_ORDER.length : i;
 }
 
 export default function SectorHeatmap() {
@@ -76,8 +88,10 @@ export default function SectorHeatmap() {
       .catch((e) => setError(String(e)));
   }, [start, end, frequency, source]);
 
-  const airlineSites = sources.filter((s) => s.source_type === "airline");
-  const otaPortals = sources.filter((s) => s.source_type === "ota");
+  const byOrder = (a: SourceInfo, b: SourceInfo) =>
+    portalRank(a.name) - portalRank(b.name);
+  const airlineSites = sources.filter((s) => s.source_type === "airline").sort(byOrder);
+  const otaPortals = sources.filter((s) => s.source_type === "ota").sort(byOrder);
   // Selecting in one dropdown blanks the other, so the pair always reads as
   // a single choice rather than two filters that might disagree.
   const isAirline = airlineSites.some((s) => s.name === source);
