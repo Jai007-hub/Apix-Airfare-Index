@@ -1642,8 +1642,7 @@ tbody tr:hover td {
   color: var(--ink);
 }
 
-/* Section heading with a control on the right -- the airline table's booking
-   window is chosen rather than fixed, since who is cheapest changes with it. */
+/* Section heading with a control on the right. */
 .tv-block-head {
   display: flex;
   align-items: center;
@@ -1656,7 +1655,9 @@ tbody tr:hover td {
   margin: 0;
 }
 
-.tv-window-select {
+/* Pill-shaped select, used for both the airline and booking-window pickers
+   -- named for how it looks rather than what it holds, since it is shared. */
+.tv-pill-select {
   flex-shrink: 0;
   height: 32px;
   padding: 0 30px 0 11px;
@@ -1678,19 +1679,19 @@ tbody tr:hover td {
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
-.tv-window-select:hover {
+.tv-pill-select:hover {
   border-color: var(--accent-line);
   background-color: var(--surface-2);
 }
 
-.tv-window-select:focus-visible {
+.tv-pill-select:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
 /* The native dropdown list paints with the OS palette unless the options are
    coloured too, which on a dark page reads as a white flash. */
-.tv-window-select option {
+.tv-pill-select option {
   background-color: var(--surface-2);
   color: var(--ink);
 }
@@ -1807,7 +1808,7 @@ tbody tr:hover td {
    list from the page's own values. The date inputs get it too, since the
    calendar popover has the same problem. */
 .tv-field select,
-.tv-window-select,
+.tv-pill-select,
 .portal-select,
 .controls input[type="date"],
 select {
@@ -1821,7 +1822,7 @@ select {
 
 /* The picked row in an open list, where the browser lets us style it. */
 .tv-field select option:checked,
-.tv-window-select option:checked,
+.tv-pill-select option:checked,
 .portal-select option:checked {
   background-color: var(--surface-3);
   color: var(--ink);
@@ -1872,7 +1873,7 @@ select {
   color: var(--ink-muted);
 }
 
-.tv-airline-bar .tv-window-select {
+.tv-airline-bar .tv-pill-select {
   min-width: 190px;
   font-weight: 550;
 }

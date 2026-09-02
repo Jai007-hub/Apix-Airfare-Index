@@ -262,3 +262,43 @@ def test_an_airline_that_does_not_fly_the_route_is_reported(db_session):
     db_session.commit()
 
     assert "error" in traveller_summary(db_session, "DEL-BOM", "AI")
+
+
+def test_every_window_has_a_split_that_matches_its_own_fare(db_session):
+    """The reader can switch windows, so a split pinned to the cheapest one
+    would describe a different fare from the one on screen."""
+    route, indigo, _ = _seed(db_session)
+    for window, fare in [(1, 12000), (7, 8000), (15, 6000), (30, 5000), (45, 4500)]:
+        db_session.add(_fare(route, indigo, TODAY, window, fare))
+    db_session.commit()
+
+    s = traveller_summary(db_session, "DEL-BOM")
+    fares = {w["window_days"]: w["fare"] for w in s["windows"]}
+
+    for window, split in s["breakdown_by_window"].items():
+        assert sum(split.values()) == fares[window], f"T+{window} split does not reconcile"
+
+
+def test_window_fare_is_the_mean_of_the_airline_fares_shown(db_session):
+    """The airline table prints rounded per-airline fares, so averaging the
+    ones on screen has to land on the window figure. A plain mean over every
+    row can differ by a rupee, and a page whose own numbers do not add up
+    reads as broken."""
+    route, indigo, air_india = _seed(db_session)
+    # Means of 4001.5 and 6001.5 round to 4002 and 6002 -> shown mean 5002.
+    # A raw mean over all four rows would give 5001.5 -> 5002 as well, so use
+    # values where the two genuinely diverge.
+    db_session.add_all(
+        [
+            _fare(route, indigo, TODAY, 45, 4001),
+            _fare(route, indigo, TODAY - timedelta(days=1), 45, 4002),
+            _fare(route, air_india, TODAY, 45, 6002),
+        ]
+    )
+    db_session.commit()
+
+    s = traveller_summary(db_session, "DEL-BOM")
+    shown = {c["code"]: c["fare"] for c in s["carriers_by_window"][45]}
+    window_fare = next(w["fare"] for w in s["windows"] if w["window_days"] == 45)
+
+    assert window_fare == round(sum(shown.values()) / len(shown))

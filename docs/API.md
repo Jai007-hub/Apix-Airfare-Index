@@ -148,3 +148,27 @@ figures correctly, and `null` there means the blended view.
 An unknown airline, or one that does not fly the route, returns `404` rather
 than silently falling back to the blended numbers -- which the reader would
 then believe were that airline's.
+
+## `breakdown_by_window` and how the fare figures reconcile
+
+Three numbers on the traveller view describe the same thing and must agree
+exactly, because a reader can and does check them:
+
+1. `windows[w].fare` -- the figure for a booking window
+2. `sum(breakdown_by_window[w].values())` -- its four-part split
+3. the mean of `carriers_by_window[w]` fares -- the airlines listed beneath
+
+Two deliberate choices make that hold.
+
+**The window fare is the mean of the *rounded* per-airline fares**, not the
+rounded mean of every row. The airline table prints those rounded values, so
+anyone averaging what is on screen must land on the window figure; a plain
+mean can differ by a rupee.
+
+**Each window carries its own split**, absorbing its rounding residual into
+the largest line. `fare_breakdown` remains as shorthand for the cheapest
+window's split.
+
+With `carrier` set, all three collapse to that airline's own fare, so the
+comparison is between one airline's numbers rather than an average nobody
+charges.

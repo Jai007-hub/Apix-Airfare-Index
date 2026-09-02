@@ -87,6 +87,21 @@ def traveller_summary(
     for row in all_recent:
         by_window_all.setdefault(row.advance_window_days, []).append(row)
 
+    def _fare_for(rows_: list[CleanFare]) -> int:
+        """The figure shown for a window.
+
+        Deliberately the mean of the *rounded* per-airline fares, not the
+        rounded mean of every row. The airline table below prints those
+        rounded values, so anyone averaging the five on screen must land on
+        this number -- with a plain mean they can differ by a rupee, and a
+        page whose own figures do not add up reads as broken.
+        """
+        per_carrier: dict[int | None, list[float]] = {}
+        for r in rows_:
+            per_carrier.setdefault(r.carrier_id, []).append(r.median_total_fare)
+        rounded = [round(statistics.mean(v)) for v in per_carrier.values()]
+        return round(statistics.mean(rounded))
+
     windows = []
     for w, rows in sorted(by_window.items()):
         quotes = sum(r.n_obs for r in rows)
@@ -94,7 +109,7 @@ def traveller_summary(
         windows.append(
             {
                 "window_days": w,
-                "fare": round(statistics.mean(r.median_total_fare for r in rows)),
+                "fare": _fare_for(rows),
                 "low": round(min(r.min_total_fare for r in rows)),
                 "high": round(max(r.max_total_fare for r in rows)),
                 "sold_out_pct": round(sold_out / quotes * 100, 1) if quotes else 0.0,
@@ -105,22 +120,33 @@ def traveller_summary(
     dearest = max(windows, key=lambda w: w["fare"])
     saving = dearest["fare"] - cheapest["fare"]
 
-    # What the cheapest fare is actually made of. Each cleaned row's components
-    # come from a single quote, so averaging them component-wise over the same
-    # rows gives a split that still sums to the fare shown above.
-    at_cheapest = by_window[cheapest["window_days"]]
-    breakdown = {
-        "base_fare": round(statistics.mean(r.median_base_fare for r in at_cheapest)),
-        "taxes": round(statistics.mean(r.median_taxes for r in at_cheapest)),
-        "udf": round(statistics.mean(r.median_udf for r in at_cheapest)),
-        "convenience_fee": round(
-            statistics.mean(r.median_convenience_fee for r in at_cheapest)
-        ),
+    # What a fare is actually made of, for every window rather than only the
+    # cheapest -- the reader can switch windows, and a split that stayed
+    # pinned to one of them would describe a different fare from the one on
+    # screen. Each cleaned row's components come from a single quote, so
+    # averaging them component-wise over the same rows gives a split that
+    # still sums to the fare shown alongside.
+    fare_at = {w["window_days"]: w["fare"] for w in windows}
+
+    def _split(rows_: list[CleanFare], total: int) -> dict:
+        parts = {
+            "base_fare": round(statistics.mean(r.median_base_fare for r in rows_)),
+            "taxes": round(statistics.mean(r.median_taxes for r in rows_)),
+            "udf": round(statistics.mean(r.median_udf for r in rows_)),
+            "convenience_fee": round(
+                statistics.mean(r.median_convenience_fee for r in rows_)
+            ),
+        }
+        # Rounding four lines independently can leave the split a rupee or two
+        # off the fare printed above it. A breakdown that doesn't add up reads
+        # as a bug to anyone who checks, so the largest line absorbs it.
+        parts["base_fare"] += total - sum(parts.values())
+        return parts
+
+    breakdown_by_window = {
+        w: _split(rows, fare_at[w]) for w, rows in sorted(by_window.items())
     }
-    # Rounding four lines independently can leave the split a rupee or two off
-    # the fare printed above it. A breakdown that doesn't add up reads as a
-    # bug to anyone who checks, so the largest line absorbs the residual.
-    breakdown["base_fare"] += cheapest["fare"] - sum(breakdown.values())
+    breakdown = breakdown_by_window[cheapest["window_days"]]
 
     # Airline ranking per booking window. Ranking across mixed windows would
     # compare booking timing rather than carriers, so each list holds its
@@ -189,6 +215,7 @@ def traveller_summary(
         "max_saving_pct": round(saving / dearest["fare"] * 100, 1) if dearest["fare"] else 0.0,
         "windows": windows,
         "fare_breakdown": breakdown,
+        "breakdown_by_window": breakdown_by_window,
         "carriers": carriers,
         "carriers_by_window": carriers_by_window,
         "months": monthly_seasonality(session, route.id),

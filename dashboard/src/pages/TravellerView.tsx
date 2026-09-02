@@ -91,12 +91,17 @@ export default function TravellerView() {
     ? summary.months.reduce((a, b) => (b.fare > a.fare ? b : a))
     : null;
 
-  const breakdownRows = summary
+  const activeSplit =
+    summary?.breakdown_by_window[String(activeWindow)] ?? summary?.fare_breakdown;
+  const activeFare =
+    summary?.windows.find((w) => w.window_days === activeWindow)?.fare ?? 0;
+
+  const breakdownRows = activeSplit
     ? ([
-        ["Base fare", summary.fare_breakdown.base_fare],
-        ["Taxes & surcharges", summary.fare_breakdown.taxes],
-        ["User development fee", summary.fare_breakdown.udf],
-        ["Convenience fee", summary.fare_breakdown.convenience_fee],
+        ["Base fare", activeSplit.base_fare],
+        ["Taxes & surcharges", activeSplit.taxes],
+        ["User development fee", activeSplit.udf],
+        ["Convenience fee", activeSplit.convenience_fee],
       ] as const)
     : [];
 
@@ -148,7 +153,7 @@ export default function TravellerView() {
         <label>
           <span>Airline</span>
           <select
-            className="tv-window-select"
+            className="tv-pill-select"
             value={airline}
             onChange={(e) => setAirline(e.target.value)}
           >
@@ -221,8 +226,17 @@ export default function TravellerView() {
                 const fill = summary.dearest_window.fare
                   ? (w.fare / summary.dearest_window.fare) * 100
                   : 0;
+                const isActive = w.window_days === activeWindow;
                 return (
-                  <li key={w.window_days} className={isBest ? "tv-row tv-best" : "tv-row"}>
+                  <li key={w.window_days}>
+                    <button
+                      type="button"
+                      className={
+                        isActive ? "tv-row tv-row-btn tv-best" : "tv-row tv-row-btn"
+                      }
+                      onClick={() => setCarrierWindow(w.window_days)}
+                      aria-pressed={isActive}
+                    >
                     <span className="tv-row-fill" style={{ width: `${fill}%` }} />
                     <span className="tv-row-label">
                       {windowLabel(w.window_days)}
@@ -234,6 +248,7 @@ export default function TravellerView() {
                       )}
                     </span>
                     <span className="tv-row-value">{rupees(w.fare)}</span>
+                    </button>
                   </li>
                 );
               })}
@@ -241,7 +256,8 @@ export default function TravellerView() {
             <p className="tv-fine">
               {summary.carrier_name
                 ? `${summary.carrier_name} fares at each booking window.`
-                : "Each row averages every airline at that booking window."}
+                : "Each row averages every airline at that booking window."}{" "}
+              Tap a row to switch the other two panels to that window.
               {lateWindow && lateWindow.sold_out_pct >= 1 && (
                 <>
                   {" "}
@@ -254,7 +270,7 @@ export default function TravellerView() {
           </section>
 
           <section className="tv-block tv-a-breakdown">
-            <h2>What you're actually paying for</h2>
+            <h2>What you're actually paying for · T+{activeWindow}</h2>
             <ul className="tv-rows tv-rows-plain">
               {breakdownRows.map(([label, value]) => (
                 <li key={label} className="tv-row">
@@ -264,16 +280,13 @@ export default function TravellerView() {
               ))}
               <li className="tv-row tv-row-total">
                 <span className="tv-row-label">Total</span>
-                <span className="tv-row-value">
-                  {rupees(summary.cheapest_window.fare)}
-                </span>
+                <span className="tv-row-value">{rupees(activeFare)}</span>
               </li>
             </ul>
             <p className="tv-fine">
-              Splits the {rupees(summary.cheapest_window.fare)}{" "}
+              Splits the {rupees(activeFare)}{" "}
               {summary.carrier_name ? `${summary.carrier_name} fare` : "average"} at{" "}
-              {windowLabel(summary.cheapest_window.window_days)} — the cheapest row
-              above. Taxes, the airport user development fee and the booking site's
+              {windowLabel(activeWindow)} — the highlighted row above. Taxes, the airport user development fee and the booking site's
               convenience fee are what separate the headline price from the one you
               pay.
             </p>
@@ -283,7 +296,7 @@ export default function TravellerView() {
             <div className="tv-block-head">
               <h2>Airlines by booking window</h2>
               <select
-                className="tv-window-select"
+                className="tv-pill-select"
                 value={activeWindow}
                 onChange={(e) => setCarrierWindow(Number(e.target.value))}
                 aria-label="Booking window to compare airlines at"

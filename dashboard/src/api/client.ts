@@ -177,6 +177,8 @@ export interface TravellerSummary {
   max_saving_pct: number;
   windows: FareWindow[];
   fare_breakdown: FareBreakdown;
+  /** The split at every window, keyed by window days as a string. */
+  breakdown_by_window: Record<string, FareBreakdown>;
   carriers: CarrierFare[];
   /** Airline ranking at every booking window, keyed by window days as a
    *  string (JSON object keys). Each list holds its window constant. */
