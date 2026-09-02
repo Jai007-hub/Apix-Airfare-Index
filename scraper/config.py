@@ -34,17 +34,34 @@ class SourceDef:
 
 
 # City-pair basket, weighted by (illustrative) DGCA domestic traffic share. Sums to 1.0.
+#
+# The ten trunk routes carry 95% of the basket weight; the five North-East
+# routes below share the remaining 5%. That split is the point of including
+# them: they are thin, expensive sectors whose fares move differently from
+# the trunk network, and a CPI airfare component built only from metro trunk
+# routes would miss that entirely. Their weights are small because their
+# passenger volumes are, not because the routes matter less.
+#
+# Order here is the display order everywhere -- trunk routes first, then the
+# North-East additions.
 ROUTES = [
-    RouteDef("DEL", "BOM", "DEL-BOM", 0.22),
-    RouteDef("DEL", "BLR", "DEL-BLR", 0.14),
-    RouteDef("BOM", "BLR", "BOM-BLR", 0.12),
-    RouteDef("DEL", "CCU", "DEL-CCU", 0.10),
-    RouteDef("BLR", "HYD", "BLR-HYD", 0.08),
-    RouteDef("MAA", "DEL", "MAA-DEL", 0.09),
-    RouteDef("DEL", "HYD", "DEL-HYD", 0.09),
-    RouteDef("BOM", "CCU", "BOM-CCU", 0.06),
-    RouteDef("BLR", "CCU", "BLR-CCU", 0.05),
-    RouteDef("MAA", "BLR", "MAA-BLR", 0.05),
+    # -- trunk routes (95% of basket weight) ------------------------------
+    RouteDef("DEL", "BOM", "DEL-BOM", 0.209),
+    RouteDef("DEL", "BLR", "DEL-BLR", 0.133),
+    RouteDef("BOM", "BLR", "BOM-BLR", 0.114),
+    RouteDef("DEL", "CCU", "DEL-CCU", 0.095),
+    RouteDef("BLR", "HYD", "BLR-HYD", 0.076),
+    RouteDef("MAA", "DEL", "MAA-DEL", 0.0855),
+    RouteDef("DEL", "HYD", "DEL-HYD", 0.0855),
+    RouteDef("BOM", "CCU", "BOM-CCU", 0.057),
+    RouteDef("BLR", "CCU", "BLR-CCU", 0.0475),
+    RouteDef("MAA", "BLR", "MAA-BLR", 0.0475),
+    # -- North-East regional routes (5% of basket weight) -----------------
+    RouteDef("IMF", "DEL", "IMF-DEL", 0.015),   # Imphal, Manipur
+    RouteDef("DIB", "DEL", "DIB-DEL", 0.012),   # Dibrugarh, Upper Assam
+    RouteDef("SHL", "CCU", "SHL-CCU", 0.010),   # Shillong, Meghalaya
+    RouteDef("IXA", "BLR", "IXA-BLR", 0.008),   # Agartala, Tripura
+    RouteDef("IXI", "GAU", "IXI-GAU", 0.005),   # Lilabari, Assam/Arunachal border
 ]
 
 CARRIERS = [

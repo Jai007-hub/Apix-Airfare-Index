@@ -82,3 +82,30 @@ against each site's current DOM -- see the module docstrings.
 See the docstring at the top of `index/apix.py` and `docs/VALIDATION.md` for
 the full weighted-relative construction and the base-period rebasing used
 when comparing against CPI.
+
+## The city-pair basket
+
+Fifteen routes in two tiers, defined in `scraper/config.py`, which is the
+single source of truth -- the database, the spiders and the synthetic
+generator all read it, and its order is the display order in the dashboard.
+
+**Ten trunk routes, 95% of basket weight.** DEL-BOM, DEL-BLR, BOM-BLR,
+DEL-CCU, BLR-HYD, MAA-DEL, DEL-HYD, BOM-CCU, BLR-CCU, MAA-BLR. High-volume
+metro sectors with several competing carriers.
+
+**Five North-East routes, 5% of basket weight.** IMF-DEL (Imphal), DIB-DEL
+(Dibrugarh), SHL-CCU (Shillong), IXA-BLR (Agartala), IXI-GAU (Lilabari).
+
+The second tier is the point of the split rather than an afterthought. These
+sectors are thin, poorly served and priced well above what their distance
+suggests -- Agartala-Bengaluru is calibrated at more than twice DEL-BOM. An
+airfare component built only from metro trunk routes would systematically
+miss how air travel prices behave for the parts of the country that depend on
+it most. Their weights are small because their passenger volumes are, not
+because the routes matter less.
+
+Weights are illustrative placeholders and must sum to 1.0. Swap in the
+official DGCA traffic table and nothing else changes -- `index/weights.py`
+renormalises over whichever routes actually reported on a given day, so a
+failed scrape shrinks the basket for that day rather than silently
+misweighting it.

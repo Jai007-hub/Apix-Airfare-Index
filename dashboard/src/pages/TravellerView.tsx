@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 
 import { api, LeaderboardRow, RouteInfo, TravellerSummary } from "../api/client";
 
-/* Display names for the six airports in the basket. A traveller reads
-   "Delhi to Mumbai"; only the analyst pages speak in IATA codes. */
+/* Display names for the airports in the basket. A traveller reads "Delhi to
+   Mumbai"; only the analyst pages speak in IATA codes. */
 const CITY: Record<string, string> = {
   DEL: "Delhi",
   BOM: "Mumbai",
@@ -11,6 +11,13 @@ const CITY: Record<string, string> = {
   CCU: "Kolkata",
   HYD: "Hyderabad",
   MAA: "Chennai",
+  // North-East sectors.
+  GAU: "Guwahati",
+  IMF: "Imphal",
+  DIB: "Dibrugarh",
+  IXA: "Agartala",
+  SHL: "Shillong",
+  IXI: "Lilabari",
 };
 
 const cityName = (code: string) => CITY[code] ?? code;
@@ -63,8 +70,12 @@ export default function TravellerView() {
 
   const [origin, destination] = selected.split("-");
 
+  /* Basket order, not alphabetical. The API returns routes by DGCA weight, so
+     first appearance puts the trunk sectors ahead of the smaller North-East
+     ones -- sorting by name would scatter Agartala and Dibrugarh among Delhi
+     and Mumbai, which reads as arbitrary. */
   const origins = useMemo(
-    () => Array.from(new Set(routes.map((r) => r.origin))).sort(),
+    () => Array.from(new Set(routes.map((r) => r.origin))),
     [routes],
   );
 
@@ -72,7 +83,7 @@ export default function TravellerView() {
      Kolkata -> Chennai and then apologising would be worse than not offering
      it, so the destination list narrows to what the chosen origin flies to. */
   const destinations = useMemo(
-    () => routes.filter((r) => r.origin === origin).map((r) => r.destination).sort(),
+    () => routes.filter((r) => r.origin === origin).map((r) => r.destination),
     [routes, origin],
   );
 

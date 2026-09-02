@@ -22,12 +22,34 @@ ROUTE_BASE_FARE = {
     "BOM-CCU": 5000,
     "BLR-CCU": 5600,
     "MAA-BLR": 2800,
+    # North-East sectors price well above their distance would suggest: thin
+    # demand, few operators and little competitive pressure. The two short
+    # regional hops are cheap in absolute terms but dear per kilometre.
+    "IMF-DEL": 7200,
+    "DIB-DEL": 7800,
+    "SHL-CCU": 3400,
+    "IXA-BLR": 8500,
+    "IXI-GAU": 3200,
 }
 
 CARRIER_TYPE_MULTIPLIER = {"LCC": 0.85, "FSC": 1.25}
 
 # Airports levying a User Development Fee (UDF)/PSF on top of statutory taxes.
-UDF_AIRPORTS = {"DEL": 550, "BOM": 480, "HYD": 430, "BLR": 400, "MAA": 260, "CCU": 220}
+UDF_AIRPORTS = {
+    "DEL": 550,
+    "BOM": 480,
+    "HYD": 430,
+    "BLR": 400,
+    "MAA": 260,
+    "CCU": 220,
+    # Smaller airports levy correspondingly smaller development fees.
+    "GAU": 200,
+    "IMF": 150,
+    "DIB": 150,
+    "IXA": 150,
+    "SHL": 130,
+    "IXI": 130,
+}
 
 # OTA convenience/booking fee (INR); direct airline sources charge none.
 OTA_CONVENIENCE_FEE = {
