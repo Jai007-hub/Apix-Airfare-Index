@@ -1694,3 +1694,47 @@ tbody tr:hover td {
   background-color: var(--surface-2);
   color: var(--ink);
 }
+
+/* -- equal-height columns -------------------------------------------------
+   The three middle blocks hold five rows each but ended at different
+   heights: the fare list uses spaced cards while the other two are flush,
+   the airlines header carries a dropdown the others don't, and the captions
+   run to different line counts. Rather than hand-tuning any of that, the
+   blocks stretch to their row and the row lists absorb the difference, so
+   the columns finish level whatever the content does. */
+
+@media (min-width: 861px) {
+  .tv-a-windows,
+  .tv-a-breakdown,
+  .tv-a-airlines {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* The list takes the slack, so a shorter caption simply gives its column
+     more room for rows instead of leaving the card short. */
+  .tv-a-windows .tv-rows,
+  .tv-a-breakdown .tv-rows,
+  .tv-a-airlines .tv-rows {
+    flex: 1;
+  }
+
+  .tv-a-windows .tv-row,
+  .tv-a-breakdown .tv-row,
+  .tv-a-airlines .tv-row {
+    flex: 1;
+  }
+
+  /* Headers match in height so all three lists start on the same line --
+     one of them carries a control and the others are bare text. */
+  .tv-block > h2 {
+    display: flex;
+    align-items: center;
+    min-height: 32px;
+  }
+
+  .tv-block-head {
+    min-height: 32px;
+  }
+}
