@@ -68,6 +68,30 @@ if not errorlevel 1 (
 :run
 echo.
 
+REM ------------------------------------------------------------ first run --
+REM A teammate who has only cloned has none of this yet, so set it up rather
+REM than failing with instructions they would have to follow by hand.
+if not exist ".venv\Scripts\python.exe" (
+  echo.
+  echo First run - creating the Python environment ^(about 3 minutes^)...
+  py -3.13 -m venv .venv
+  if errorlevel 1 (
+    echo   Python 3.13 not found, using the default Python...
+    py -3 -m venv .venv
+  )
+  .venv\Scripts\python.exe -m pip install --upgrade pip -q
+  .venv\Scripts\python.exe -m pip install -q -r requirements.txt
+  echo   Python environment ready.
+)
+
+if not exist "dashboard\node_modules" (
+  echo.
+  echo First run - installing dashboard packages ^(about 2 minutes^)...
+  pushd dashboard
+  call npm install
+  popd
+)
+
 REM ------------------------------------------------------------- database --
 if not exist "apix.db" (
   echo.

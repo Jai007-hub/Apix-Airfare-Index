@@ -56,14 +56,15 @@ fi
 echo
 
 # --------------------------------------------------------------- first run --
+# A teammate who has only cloned has none of this yet, so set it up rather
+# than failing with instructions they would have to follow by hand.
 if [ ! -f ".venv/bin/uvicorn" ]; then
-    echo "No Python environment found. Set it up first, in Terminal:"
-    echo "  cd \"$(pwd)\""
-    echo "  python3 -m venv .venv"
-    echo "  .venv/bin/python -m pip install -r requirements.txt"
-    echo "  cd dashboard && npm install"
-    read -r -p "Press Enter to close this window..."
-    exit 1
+    echo
+    echo "First run - creating the Python environment (about 3 minutes)..."
+    python3 -m venv .venv || { echo "Could not create the venv. Is Python 3 installed?"; read -r -p "Press Enter to close..."; exit 1; }
+    .venv/bin/python -m pip install --upgrade pip -q
+    .venv/bin/python -m pip install -q -r requirements.txt
+    echo "  Python environment ready."
 fi
 
 if [ ! -d "dashboard/node_modules" ]; then
