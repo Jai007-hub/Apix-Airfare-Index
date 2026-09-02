@@ -76,6 +76,9 @@ export interface ErrorMetrics {
 
 export interface ValidationSummary {
   n_months_compared: number;
+  /** Full extent on record, regardless of the window in view. */
+  available_start: string;
+  available_end: string;
   days_covered: number;
   window_start: string;
   window_end: string;
@@ -214,7 +217,13 @@ export const api = {
     const params = new URLSearchParams({ start, end });
     return getJSON<ElasticityResponse>(`/api/v1/elasticity?${params.toString()}`);
   },
-  getValidation: () => getJSON<ValidationSummary>("/api/v1/validation"),
+  getValidation: (start?: string, end?: string) => {
+    const params = new URLSearchParams();
+    if (start) params.set("start", start);
+    if (end) params.set("end", end);
+    const q = params.toString();
+    return getJSON<ValidationSummary>(`/api/v1/validation${q ? `?${q}` : ""}`);
+  },
   getTraveller: (routeLabel: string) =>
     getJSON<TravellerSummary>(`/api/v1/traveller/${encodeURIComponent(routeLabel)}`),
   getRouteLeaderboard: () => getJSON<LeaderboardRow[]>("/api/v1/traveller"),

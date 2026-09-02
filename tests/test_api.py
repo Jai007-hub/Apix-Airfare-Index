@@ -65,3 +65,84 @@ def test_validation_endpoint(db_session, client):
     body = resp.json()
     assert body["n_months_compared"] == 2
     assert body["mape_pct"] > 0
+
+
+# -- validation window filter -------------------------------------------------
+
+
+def _seed_validation_months(db_session, months):
+    """months: {(year, month): (apix_rebased, cpi)}"""
+    for (year, month), (apix, cpi) in months.items():
+        db_session.add(
+            ValidationResult(
+                period_month=date(year, month, 1),
+                apix_value_rebased=apix,
+                cpi_airfare_value=cpi,
+                pct_diff=(apix - cpi) / cpi * 100,
+            )
+        )
+    db_session.commit()
+
+
+def test_validation_window_narrows_the_comparison(db_session, client):
+    _seed_validation_months(
+        db_session,
+        {
+            (2025, 1): (100.0, 100.0),
+            (2025, 2): (110.0, 100.0),
+            (2025, 3): (120.0, 100.0),
+        },
+    )
+
+    full = client.get("/api/v1/validation").json()
+    narrow = client.get("/api/v1/validation?start=2025-03-01&end=2025-03-31").json()
+
+    assert full["n_months_compared"] == 3
+    assert narrow["n_months_compared"] == 1
+    # March alone is 20% out; averaged with the other two it is 10%.
+    assert round(narrow["mape_pct"], 1) == 20.0
+    assert round(full["mape_pct"], 1) == 10.0
+
+
+def test_a_narrow_window_is_not_re_anchored_to_look_perfect(db_session, client):
+    """Re-rebasing to the window would force its first month to 0% error by
+    construction, making any short window look flawless for arithmetic
+    reasons. The stored whole-series rebasing is kept instead."""
+    _seed_validation_months(
+        db_session,
+        {(2025, 1): (100.0, 100.0), (2025, 2): (115.0, 100.0)},
+    )
+
+    narrow = client.get("/api/v1/validation?start=2025-02-01&end=2025-02-28").json()
+
+    assert narrow["n_months_compared"] == 1
+    assert round(narrow["mape_pct"], 1) == 15.0  # not 0.0
+
+
+def test_validation_reports_the_full_extent_even_when_filtered(db_session, client):
+    """The picker needs the real bounds, not the bounds of whatever slice is
+    currently loaded, or it would ratchet itself shut."""
+    _seed_validation_months(
+        db_session,
+        {(2025, 1): (100.0, 100.0), (2025, 6): (110.0, 100.0)},
+    )
+
+    narrow = client.get("/api/v1/validation?start=2025-06-01&end=2025-06-30").json()
+
+    assert narrow["available_start"] == "2025-01-01"
+    assert narrow["available_end"] == "2025-06-30"
+    assert narrow["window_start"] == "2025-06-01"
+
+
+def test_correlation_is_withheld_when_a_window_has_one_point(db_session, client):
+    """One point cannot have a correlation; reporting 0 or 1 would be a lie
+    the page would then print in a headline stat."""
+    _seed_validation_months(
+        db_session,
+        {(2025, 1): (100.0, 100.0), (2025, 2): (110.0, 105.0)},
+    )
+
+    narrow = client.get("/api/v1/validation?start=2025-02-01&end=2025-02-28").json()
+
+    assert narrow["pearson_correlation"] is None
+    assert narrow["directional_agreement"] is None

@@ -24,17 +24,37 @@ const monthLabel = (m: { year: number; month: number }) =>
 export default function Validation() {
   const [data, setData] = useState<ValidationSummary | null>(null);
   const [openStat, setOpenStat] = useState<"mape" | "correlation" | null>(null);
+  // Empty means "everything on record"; the API bounds itself.
+  const [start, setStart] = useState("");
+  const [end, setEnd] = useState("");
+  // Kept separately so the pickers stay bounded even while a narrow window is
+  // loaded -- the response's own window would otherwise shrink the limits.
+  const [extent, setExtent] = useState<{ start: string; end: string } | null>(null);
 
   const toggle = (which: "mape" | "correlation") =>
     setOpenStat((current) => (current === which ? null : which));
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    setError(null);
     api
-      .getValidation()
-      .then(setData)
+      .getValidation(start || undefined, end || undefined)
+      .then((d) => {
+        setData(d);
+        setExtent((prev) => prev ?? { start: d.available_start, end: d.available_end });
+      })
       .catch((e) => setError(String(e)));
-  }, []);
+  }, [start, end]);
+
+  /** Jump the window to the last N days of the record. */
+  const lastDays = (days: number) => {
+    if (!extent) return;
+    const last = new Date(`${extent.end}T00:00:00`);
+    const from = new Date(last);
+    from.setDate(from.getDate() - (days - 1));
+    setStart(from.toISOString().slice(0, 10));
+    setEnd(extent.end);
+  };
 
   const chartData = data?.points.map((p) => ({
     label: `${p.year}-${String(p.month).padStart(2, "0")}`,
@@ -60,6 +80,71 @@ export default function Validation() {
 
       {data && (
         <>
+          <div className="controls">
+            <div className="seg" role="group" aria-label="Back-test window">
+              <button onClick={() => lastDays(30)} aria-pressed={false}>
+                30 days
+              </button>
+              <button onClick={() => lastDays(90)} aria-pressed={false}>
+                90 days
+              </button>
+              <button onClick={() => lastDays(365)} aria-pressed={false}>
+                1 year
+              </button>
+              <button
+                onClick={() => {
+                  setStart("");
+                  setEnd("");
+                }}
+                aria-pressed={!start && !end}
+              >
+                All
+              </button>
+            </div>
+            <label>
+              From
+              <input
+                type="date"
+                value={start || extent?.start || ""}
+                min={extent?.start}
+                max={extent?.end}
+                onChange={(e) => setStart(e.target.value)}
+              />
+            </label>
+            <label>
+              To
+              <input
+                type="date"
+                value={end || extent?.end || ""}
+                min={extent?.start}
+                max={extent?.end}
+                onChange={(e) => setEnd(e.target.value)}
+              />
+            </label>
+            {extent && (
+              <span className="hint-inline">
+                data available {extent.start} to {extent.end}
+              </span>
+            )}
+          </div>
+
+          {data.n_months_compared < 3 && (
+            <div className="note note-warn">
+              <span aria-hidden="true">⚠</span>
+              <span>
+                <strong>
+                  {data.n_months_compared} comparison point
+                  {data.n_months_compared === 1 ? "" : "s"} in this window.
+                </strong>{" "}
+                CPI publishes monthly, so a 30-day window yields a single month.
+                Correlation needs at least two points and is arithmetically ±1 at
+                exactly two, so it is not meaningful here — MAPE and MAE still are.
+                The full {data.available_start} to {data.available_end} record gives
+                19 points, which is what the headline figures are based on.
+              </span>
+            </div>
+          )}
+
           <div className="stat-row">
             <div className="stat">
               <div className="label">Days back-tested</div>

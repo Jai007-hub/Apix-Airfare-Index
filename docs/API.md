@@ -15,7 +15,7 @@ downstream consumer can call them directly from a browser or server.
 | `GET /api/v1/heatmap` | `start`, `end`, `frequency` (daily\|weekly\|monthly), `source` | `{periods, routes, matrix, source}` -- route x period avg fare, optionally for one booking portal |
 | `GET /api/v1/sources` | -- | The portals scraped: `[{name, source_type (airline\|ota), base_url}]` |
 | `GET /api/v1/elasticity` | `start`, `end` | `{route_label: [{advance_window_days, avg_fare}]}` |
-| `GET /api/v1/validation` | -- | APIx vs CPI comparison: `{n_months_compared, mape_pct, pearson_correlation, directional_agreement, deviation_profile, points}` |
+| `GET /api/v1/validation` | `start`, `end` | APIx vs CPI comparison: `{n_months_compared, mape_pct, pearson_correlation, directional_agreement, deviation_profile, points}` |
 | `GET /api/v1/traveller` | -- | Every tracked sector at its best current fare, cheapest first: `[{route, origin, destination, best_fare}]` |
 | `GET /api/v1/traveller/{route_label}` | -- (route in path, e.g. `DEL-BOM`) | Consumer-facing route summary: `{typical_fare, cheapest_window, dearest_window, max_saving, max_saving_pct, windows, fare_breakdown, carriers, months, trend_pct, trend_direction}` |
 
@@ -108,3 +108,23 @@ two are close but not identical.
 An unknown portal name returns `404` rather than an empty matrix -- an empty
 grid reads as "no fares on these routes" when the real answer is "that portal
 is not tracked".
+
+## `start` / `end` on `/api/v1/validation`
+
+Narrow the back-test to a window (any day within the first and last month to
+include). Omitted, the whole record is compared. The response always carries
+`available_start` / `available_end` describing the **full** extent, so a
+caller can bound a date picker without it ratcheting shut as the window
+narrows.
+
+**The window does not re-anchor the rebasing.** APIx values keep the scale
+factor computed over the whole series. Re-anchoring to the window would force
+its first month to exactly 0.000% error by construction, so any short window
+would look flawless for arithmetic reasons rather than accuracy ones -- a
+30-day window would report 0% MAPE and mean nothing.
+
+Windows shorter than three months degrade the metrics, and the API says so by
+omitting rather than faking them: `pearson_correlation` and
+`directional_agreement` are `null` below two points. At exactly two points a
+correlation is arithmetically +/-1 and carries no information, which the
+dashboard warns about rather than the API suppressing.

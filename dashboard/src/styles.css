@@ -1784,3 +1784,15 @@ tbody tr:hover td {
   font-weight: 600;
   margin: 18px 0 9px;
 }
+
+/* A window too short for its own metrics -- amber, because the numbers on
+   screen are still correct, they just cannot carry the weight they do over
+   the full record. */
+.note-warn {
+  border-color: rgba(230, 103, 103, 0.32);
+  background: rgba(230, 103, 103, 0.07);
+}
+
+.note-warn > span:first-child {
+  color: var(--bad);
+}
