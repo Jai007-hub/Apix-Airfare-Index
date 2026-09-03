@@ -72,11 +72,25 @@ if [ ! -d "dashboard/node_modules" ]; then
     (cd dashboard && npm install)
 fi
 
+NEEDS_SEED=""
 if [ ! -f "apix.db" ]; then
+    NEEDS_SEED="No database found."
+else
+    # apix.db is not in git, so a pull that changes the basket leaves this
+    # machine holding a database built from the old one. Nothing errors --
+    # the dashboard just keeps showing the old routes, which looks exactly
+    # like the update not arriving.
+    .venv/bin/python -m scripts.check_basket
+    if [ $? -eq 1 ]; then
+        NEEDS_SEED="The route basket changed since this database was built."
+    fi
+fi
+
+if [ -n "$NEEDS_SEED" ]; then
     echo
     echo "=========================================================="
-    echo "  No database found. Building it now - takes 5-10 minutes."
-    echo "  This only happens once on a new machine."
+    echo "  $NEEDS_SEED"
+    echo "  Rebuilding it now - takes 5-10 minutes."
     echo "=========================================================="
     echo
     .venv/bin/python -m scripts.seed_demo_data

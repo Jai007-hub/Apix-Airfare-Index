@@ -93,6 +93,29 @@ if not exist "dashboard\node_modules" (
 )
 
 REM ------------------------------------------------------------- database --
+REM apix.db is not in git, so a pull that changes the basket leaves this
+REM machine holding a database built from the old one. Nothing errors -- the
+REM dashboard just keeps showing the old routes, which looks exactly like the
+REM update not arriving.
+set "NEEDS_SEED="
+if exist "apix.db" (
+  .venv\Scripts\python.exe -m scripts.check_basket
+  if errorlevel 1 (
+    if not errorlevel 2 set "NEEDS_SEED=The route basket changed since this database was built."
+  )
+)
+
+if defined NEEDS_SEED (
+  echo.
+  echo ==========================================================
+  echo   !NEEDS_SEED!
+  echo   Rebuilding it now - takes 5-10 minutes.
+  echo ==========================================================
+  echo.
+  .venv\Scripts\python.exe -m scripts.seed_demo_data
+  echo.
+)
+
 if not exist "apix.db" (
   echo.
   echo ==========================================================
