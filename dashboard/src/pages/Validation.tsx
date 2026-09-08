@@ -247,12 +247,6 @@ export default function Validation() {
                       </strong>
                     </li>
                   </ul>
-                  <p className="corr-fine">
-                    A mean hides its own shape, so the median and the extremes are shown
-                    beside it. These exclude the first overlapping month: rebasing scales
-                    APIx to match CPI exactly there, so its 0.00% deviation is an
-                    arithmetic identity rather than a measure of accuracy.
-                  </p>
                 </>
               )}
               {data.error_metrics && (
@@ -285,14 +279,6 @@ export default function Validation() {
                       </strong>
                     </li>
                   </ul>
-                  <p className="corr-fine">
-                    In index points, the unit both series are expressed in. RMSE well
-                    above MAE means the error sits in a few bad months rather than
-                    spread evenly; bias near zero means the index wanders either side
-                    of CPI rather than running consistently high or low. Classification
-                    measures — accuracy, precision, F1 — do not apply: nothing here is
-                    being sorted into classes.
-                  </p>
                 </>
               )}
             </div>
