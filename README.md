@@ -136,6 +136,40 @@ private repo, `git pull` always works, but `git push` will be rejected by
 GitHub -- that's intentional, not a bug, so you can safely `git pull` any
 time without risk of overwriting anyone's work.
 
+Read access still lets you **edit and `git commit` locally** -- git commits
+happen entirely on your own machine regardless of push permission. Those
+commits are real and permanent on your laptop, they just cannot reach this
+repo. The only downside: if that laptop is lost, reformatted, or its disk
+dies, those commits go with it. Nothing here backs them up.
+
+### Want your own changes saved to GitHub too? Fork it.
+
+A **fork** is your own private copy of this whole repo, under your own
+GitHub account. You get full push access to *your* copy; this repo is
+completely unaffected by anything that happens there, forever, unless the
+owner (Jai) deliberately reviews and merges a pull request from your fork --
+which is a decision made on GitHub, not something a push can force.
+
+1. Open **github.com/Jai007-hub/Apix-Airfare-Index** while logged in to your
+   own GitHub account and click **Fork** (top right). This needs nothing
+   beyond the Read access you already have.
+2. Clone *your fork*, not the original -- the URL now has your username in
+   it:
+   ```bash
+   git clone https://github.com/<your-github-username>/Apix-Airfare-Index.git
+   cd Apix-Airfare-Index
+   ```
+3. From here your fork behaves like any repo you own: edit, `git add`,
+   `git commit`, `git push` -- all of it goes to your copy on GitHub, safe
+   even if this laptop dies later.
+4. To pull in updates from the original repo later (it moves ahead
+   independently of your fork):
+   ```bash
+   git remote add upstream https://github.com/Jai007-hub/Apix-Airfare-Index.git
+   git fetch upstream
+   git merge upstream/main
+   ```
+
 Note that `apix.db` (the seeded demo database) is intentionally **not**
 tracked by git -- it's ~250MB of generated data, regenerated locally by
 `scripts.seed_demo_data`. **`git pull` therefore updates code but not
